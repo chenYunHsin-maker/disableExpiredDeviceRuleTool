@@ -161,6 +161,22 @@ func getMysqlProfilePolicyRule(rows *sql.Rows) map[string][]string {
 	}
 	return siteIdToIdMap
 }
+func getMysqlFirewallRule(rows *sql.Rows) map[string][]string {
+	siteIdToFirewallIdMap := make(map[string][]string)
+	//ruleName,ruleType,enabled,policyId
+	for rows.Next() {
+		var id sql.NullString
+		var ruleType sql.NullString
+		var firewallId sql.NullString
+		if err := rows.Scan(&id, &ruleType, &firewallId); err != nil {
+			fmt.Println(" err :", err)
+		}
+		if ruleType.String == "site" {
+			siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
+		}
+	}
+	return siteIdToFirewallIdMap
+}
 func initDb() {
 
 	fmt.Println("input mysql domain: ")
@@ -179,10 +195,17 @@ func initDb() {
 	}
 	fmt.Println("mysql login as root/root db:", dbName)
 }
-func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap map[string][]string) {
+func updateMysqlEnableStatement(command string, idArr []string) {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
-
+	for i := 0; i < len(idArr); i++ {
+		command := command + idArr[i] + ";"
+		db.Exec(command)
+	}
+}
+func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap map[string][]string) {
+	policyUpdateCmd := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`="
+	firewallUpdateCmd := "UPDATE cubs.profile_firewall_rule SET `enabled` = 0  WHERE `id`="
 	for key, _ := range siteNameToSnMap {
 		this_site_name := key
 		this_sn := siteNameToSnMap[this_site_name]
@@ -193,13 +216,13 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 			if expired_date.Before(today) {
 				this_site_id := siteNameToSiteIdMap[key]
 				idMap := policyIdToIdMap[this_site_id]
-				for i := 0; i < len(idMap); i++ {
-					command := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`=" + idMap[i] + ";"
-					db.Exec(command)
-				}
+				fIdMap := FpolicyIdToIdMap[this_site_id]
 
+				updateMysqlEnableStatement(policyUpdateCmd, idMap)
+				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today, expired_date)
 				fmt.Printf("change enabled to False. \n")
+				fmt.Println("policy:", idMap, " firewall:", fIdMap)
 			}
 		}
 	}
@@ -217,12 +240,14 @@ func main() {
 	checkErr(err)
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
+	rows3, _ := db.Query("SELECT  id,ruleType,firewallId FROM cubs.profile_firewall_rule;")
 	defer rows.Close()
 	defer rows2.Close()
 
 	snExpiredMap := getMysqlMap(rows)
-	policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
+	BpolicyIdToIdMap := getMysqlProfilePolicyRule(rows2)
+	FpolicyIdToIdMap := getMysqlFirewallRule(rows3)
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, policyIdToIdMap)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap)
 
 }
