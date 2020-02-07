@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/syhlion/sqlwrapper"
@@ -16,6 +17,7 @@ const (
 	buisnessPolicyUrl = "/apis/businesspolicy/v1alpha1/namespaces/default/bprulesets/"
 	firewallPolicyUrl = "/apis/firewall/v1alpha1/namespaces/default/fwpolicies/"
 	siteconfigUrl     = "/apis/site/v1alpha1/namespaces/default/siteconfigs"
+	timeFormat        = "2006-01-02"
 )
 
 var (
@@ -42,6 +44,12 @@ type Document struct {
 	} `json:"items"`
 }
 
+func GetTaiwanTime() time.Time {
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	//fmt.Println(time.Now().In(loc))
+	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
+	return t
+}
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
@@ -166,7 +174,24 @@ func initDb() {
 	fmt.Println("mysql login as root/root db:", dbName)
 }
 func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap map[string][]string) {
+	for key, _ := range siteNameToSnMap {
+		this_site_name := key
+		this_sn := siteNameToSnMap[this_site_name]
+		today := GetTaiwanTime()
+		expired_date, _ := ShortDateFromString(snExpiredMap[this_sn])
 
+		if expired_date.After(today) {
+			fmt.Println("license is working!")
+		}
+	}
+
+}
+func ShortDateFromString(ds string) (time.Time, error) {
+	t, err := time.Parse(timeFormat, ds)
+	if err != nil {
+		return t, err
+	}
+	return t, err
 }
 func main() {
 	initDb()
@@ -181,4 +206,5 @@ func main() {
 	policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, policyIdToIdMap)
+
 }
