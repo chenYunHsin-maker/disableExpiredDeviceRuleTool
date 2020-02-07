@@ -111,10 +111,10 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 	}
 	return snExpiredMap
 }
-func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
+func getMysqlProfilePolicyRule(rows *sql.Rows) map[string][]string {
 	//policyIdToRuleTypeMap := make(map[string][]string)
 
-	policyIdToRuleNameMap := make(map[string][]string)
+	//policyIdToRuleNameMap := make(map[string][]string)
 	siteIdToIdMap := make(map[string][]string)
 	//ruleName,ruleType,enabled,policyId
 	for rows.Next() {
@@ -130,14 +130,14 @@ func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string][]string, map[string]
 		if ruleType.String == "site" {
 			//idToRuleNameMap
 
-			policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
+			//policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
 			siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
 		}
 
 		//fmt.Println("sn:", sn.String, " linked site id:", site.String)
 
 	}
-	return policyIdToRuleNameMap, siteIdToIdMap
+	return siteIdToIdMap
 }
 func main() {
 	dbName := "cubs"
@@ -167,7 +167,7 @@ func main() {
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
 	snExpiredMap := getMysqlMap(rows)
-	policyIdToRuleNameMap, policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
+	policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
 
 	defer rows.Close()
 
@@ -180,8 +180,8 @@ func main() {
 	fmt.Println("siteName : siteId=================")
 	checkTableS(siteNameToSiteIdMap)
 
-	fmt.Println("siteId : ruleName=================")
-	checkTable(policyIdToRuleNameMap)
+	//fmt.Println("siteId : ruleName=================")
+	//checkTable(policyIdToRuleNameMap)
 	fmt.Println("siteId : id=================")
 	checkTable(policyIdToIdMap)
 
