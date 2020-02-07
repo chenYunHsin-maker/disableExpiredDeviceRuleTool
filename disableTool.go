@@ -177,6 +177,30 @@ func getMysqlFirewallRule(rows *sql.Rows) map[string][]string {
 	}
 	return siteIdToFirewallIdMap
 }
+func getSiteIdToPolicyBName(rows *sql.Rows) map[string][]string {
+	siteIdToPolicyBName := make(map[string][]string)
+	for rows.Next() {
+		var id sql.NullString
+		var beName sql.NullString
+		if err := rows.Scan(&id, &beName); err != nil {
+			fmt.Println(" err :", err)
+		}
+		siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
+	}
+	return siteIdToPolicyBName
+}
+func getSiteIdToFirewallBName(rows *sql.Rows) map[string][]string {
+	siteIdToFirewallBName := make(map[string][]string)
+	for rows.Next() {
+		var id sql.NullString
+		var beName sql.NullString
+		if err := rows.Scan(&id, &beName); err != nil {
+			fmt.Println(" err :", err)
+		}
+		siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
+	}
+	return siteIdToFirewallBName
+}
 func initDb() {
 
 	fmt.Println("input mysql domain: ")
@@ -241,13 +265,24 @@ func main() {
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
 	rows3, _ := db.Query("SELECT  id,ruleType,firewallId FROM cubs.profile_firewall_rule;")
+	rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
+	rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
 	defer rows.Close()
 	defer rows2.Close()
+	defer rows3.Close()
+	defer rows4.Close()
+	defer rows5.Close()
 
 	snExpiredMap := getMysqlMap(rows)
 	BpolicyIdToIdMap := getMysqlProfilePolicyRule(rows2)
 	FpolicyIdToIdMap := getMysqlFirewallRule(rows3)
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
+
+	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
+	checkTable(siteIdToPolicyBName)
+	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
+	checkTable(siteIdToFirewallBName)
+
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap)
 
 }
