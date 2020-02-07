@@ -18,6 +18,14 @@ const (
 	siteconfigUrl     = "/apis/site/v1alpha1/namespaces/default/siteconfigs"
 )
 
+var (
+	dbName          = "cubs"
+	mysqlDomain     = "127.0.0.1:3308"
+	apiserverDomain = "127.0.0.1:8080"
+	username        = "root"
+	password        = "root"
+)
+
 type Document struct {
 	APIVersion string `json:"apiVersion"`
 	Items      []struct {
@@ -139,12 +147,8 @@ func getMysqlProfilePolicyRule(rows *sql.Rows) map[string][]string {
 	}
 	return siteIdToIdMap
 }
-func main() {
-	dbName := "cubs"
-	mysqlDomain := "127.0.0.1:3308"
-	apiserverDomain := "127.0.0.1:8080"
-	username := "root"
-	password := "root"
+func initDb() {
+
 	fmt.Println("input mysql domain: ")
 	fmt.Scanf("%s", &mysqlDomain)
 	if mysqlDomain == "" {
@@ -160,6 +164,9 @@ func main() {
 		apiserverDomain = "127.0.0.1:8080"
 	}
 	fmt.Println("mysql login as root/root db:", dbName)
+}
+func main() {
+	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
 	err = db.Ping()
@@ -176,15 +183,9 @@ func main() {
 	checkTable(siteNameToSnMap)
 	fmt.Println("sn : expired=================")
 	checkTableS(snExpiredMap)
-
 	fmt.Println("siteName : siteId=================")
 	checkTableS(siteNameToSiteIdMap)
-
-	//fmt.Println("siteId : ruleName=================")
-	//checkTable(policyIdToRuleNameMap)
 	fmt.Println("siteId : id=================")
 	checkTable(policyIdToIdMap)
-
-	//checkTableS(policyIdToRuleTypeMap)
 
 }
