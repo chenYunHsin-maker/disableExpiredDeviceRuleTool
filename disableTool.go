@@ -58,8 +58,8 @@ func getApiserverBody(apiserverDomain, siteUrl string) string {
 	//fmt.Println(s)
 	return s
 }
-func getApiserverMap(apiserverDomain string) (map[string][]string, map[string]string) {
-	apiServerMap := make(map[string][]string)
+func getApiserverMap(apiserverDomain string) (map[string]string, map[string]string) {
+	apiServerMap := make(map[string]string)
 	siteNameToSiteIdMap := make(map[string]string)
 
 	//apiServerDevice2Map := make(map[string][]string)
@@ -77,7 +77,7 @@ func getApiserverMap(apiserverDomain string) (map[string][]string, map[string]st
 			//this_device2Sn := document.Items[i].Spec.Device2.Sn
 			//fmt.Println(snName)
 			siteNameToSiteIdMap[this_siteName] = this_siteId
-			apiServerMap[this_siteName] = append(apiServerMap[this_siteName], this_sn)
+			apiServerMap[this_siteName] = this_sn
 
 			//fmt.Println("device2 ", this_device2Sn)
 			//apiServerDevice2Map[this_siteName] = append(apiServerDevice2Map[this_siteName], this_device2Sn)
@@ -165,6 +165,9 @@ func initDb() {
 	}
 	fmt.Println("mysql login as root/root db:", dbName)
 }
+func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap map[string][]string) {
+
+}
 func main() {
 	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
@@ -176,15 +179,6 @@ func main() {
 
 	snExpiredMap := getMysqlMap(rows)
 	policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
-
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
-	fmt.Println("siteName : sn=================")
-	checkTable(siteNameToSnMap)
-	fmt.Println("sn : expired=================")
-	checkTableS(snExpiredMap)
-	fmt.Println("siteName : siteId=================")
-	checkTableS(siteNameToSiteIdMap)
-	fmt.Println("siteId : id=================")
-	checkTable(policyIdToIdMap)
-
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, policyIdToIdMap)
 }
