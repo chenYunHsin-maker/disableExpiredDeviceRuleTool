@@ -50,9 +50,10 @@ func getApiserverBody(apiserverDomain, siteUrl string) string {
 	//fmt.Println(s)
 	return s
 }
-func getApiserverMap(apiserverDomain string) (map[string][]string, map[string]string) {
+func getApiserverMap(apiserverDomain string) (map[string][]string, map[string]string, map[string]string) {
 	apiServerMap := make(map[string][]string)
 	siteIdToSiteNameMap := make(map[string]string)
+	siteNameToSiteIdMap := make(map[string]string)
 	//apiServerDevice2Map := make(map[string][]string)
 	body := getApiserverBody(apiserverDomain, siteconfigUrl)
 	var document Document
@@ -67,13 +68,14 @@ func getApiserverMap(apiserverDomain string) (map[string][]string, map[string]st
 			this_siteId := strconv.Itoa(document.Items[i].Spec.SiteID)
 			//this_device2Sn := document.Items[i].Spec.Device2.Sn
 			//fmt.Println(snName)
+			siteNameToSiteIdMap[this_siteName] = this_siteId
 			apiServerMap[this_siteName] = append(apiServerMap[this_siteName], this_sn)
 			siteIdToSiteNameMap[this_siteId] = this_siteName
 			//fmt.Println("device2 ", this_device2Sn)
 			//apiServerDevice2Map[this_siteName] = append(apiServerDevice2Map[this_siteName], this_device2Sn)
 		}
 	}
-	return apiServerMap, siteIdToSiteNameMap
+	return apiServerMap, siteIdToSiteNameMap, siteNameToSiteIdMap
 }
 func checkTable(snSiteLinkedMap map[string][]string) {
 	fmt.Println("start to check map......")
@@ -109,10 +111,10 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 	}
 	return snExpiredMap
 }
-func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string]string, map[string]string, map[string]string) {
-	policyIdToRuleTypeMap := make(map[string]string)
-	policyIdToEnabledMap := make(map[string]string)
-	policyIdToRuleNameMap := make(map[string]string)
+func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
+	//policyIdToRuleTypeMap := make(map[string][]string)
+	policyIdToEnabledMap := make(map[string][]string)
+	policyIdToRuleNameMap := make(map[string][]string)
 	//ruleName,ruleType,enabled,policyId
 	for rows.Next() {
 		var ruleName sql.NullString
@@ -124,15 +126,15 @@ func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string]string, map[string]st
 		}
 
 		if ruleType.String == "site" {
-			policyIdToEnabledMap[policyId.String] = enabled.String
-			policyIdToRuleNameMap[policyId.String] = ruleName.String
-			policyIdToRuleTypeMap[policyId.String] = ruleType.String
+			policyIdToEnabledMap[policyId.String] = append(policyIdToEnabledMap[policyId.String], enabled.String)
+			policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
+
 		}
 
 		//fmt.Println("sn:", sn.String, " linked site id:", site.String)
 
 	}
-	return policyIdToRuleTypeMap, policyIdToEnabledMap, policyIdToRuleNameMap
+	return policyIdToEnabledMap, policyIdToRuleNameMap
 }
 func main() {
 	dbName := "cubs"
@@ -162,17 +164,18 @@ func main() {
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
 	snExpiredMap := getMysqlMap(rows)
-	policyIdToRuleTypeMap, policyIdToEnabledMap, policyIdToRuleNameMap := getMysqlProfilePolicyRule(rows2)
+	policyIdToEnabledMap, policyIdToRuleNameMap := getMysqlProfilePolicyRule(rows2)
 
 	defer rows.Close()
 
-	siteNameToSnMap, siteIdToSiteNameMap := getApiserverMap(apiserverDomain)
+	siteNameToSnMap, siteIdToSiteNameMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 	checkTable(siteNameToSnMap)
 	//checkTable(apiServerDevice2SnMap)
 	checkTableS(snExpiredMap)
 	checkTableS(siteIdToSiteNameMap)
-	checkTableS(policyIdToEnabledMap)
-	checkTableS(policyIdToRuleNameMap)
-	checkTableS(policyIdToRuleTypeMap)
+	checkTableS(siteNameToSiteIdMap)
+	checkTable(policyIdToEnabledMap)
+	checkTable(policyIdToRuleNameMap)
+	//checkTableS(policyIdToRuleTypeMap)
 
 }
