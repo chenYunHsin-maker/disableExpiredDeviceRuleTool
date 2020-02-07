@@ -50,6 +50,12 @@ func GetTaiwanTime() time.Time {
 	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
 	return t
 }
+func GetFakeTime() time.Time {
+	//loc, _ := time.LoadLocation("Asia/Taipei")
+	//fmt.Println(time.Now().In(loc))
+	t, _ := ShortDateFromString("2087-01-01")
+	return t
+}
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
@@ -174,17 +180,29 @@ func initDb() {
 	fmt.Println("mysql login as root/root db:", dbName)
 }
 func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap map[string][]string) {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
+	checkErr(err)
+
 	for key, _ := range siteNameToSnMap {
 		this_site_name := key
 		this_sn := siteNameToSnMap[this_site_name]
-		today := GetTaiwanTime()
-		expired_date, _ := ShortDateFromString(snExpiredMap[this_sn])
+		//today := GetTaiwanTime()
+		if snExpiredMap[this_sn] != "" {
+			today := GetTaiwanTime()
+			expired_date, _ := ShortDateFromString(snExpiredMap[this_sn])
+			if expired_date.Before(today) {
+				this_site_id := siteNameToSiteIdMap[key]
+				idMap := policyIdToIdMap[this_site_id]
+				for i := 0; i < len(idMap); i++ {
+					command := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`=" + idMap[i] + ";"
+					db.Exec(command)
+				}
 
-		if expired_date.After(today) {
-			fmt.Println("license is working!")
+				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today, expired_date)
+				fmt.Printf("change enabled to False. \n")
+			}
 		}
 	}
-
 }
 func ShortDateFromString(ds string) (time.Time, error) {
 	t, err := time.Parse(timeFormat, ds)
