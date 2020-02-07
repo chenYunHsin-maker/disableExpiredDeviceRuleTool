@@ -169,14 +169,13 @@ func main() {
 	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
-	err = db.Ping()
-	checkErr(err)
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
+	defer rows.Close()
+	defer rows2.Close()
+
 	snExpiredMap := getMysqlMap(rows)
 	policyIdToIdMap := getMysqlProfilePolicyRule(rows2)
-
-	defer rows.Close()
 
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 	fmt.Println("siteName : sn=================")
