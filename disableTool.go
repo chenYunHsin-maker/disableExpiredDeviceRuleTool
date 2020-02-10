@@ -14,18 +14,23 @@ import (
 )
 
 const (
-	buisnessPolicyUrl = "/apis/businesspolicy/v1alpha1/namespaces/default/bprulesets/"
-	firewallPolicyUrl = "/apis/firewall/v1alpha1/namespaces/default/fwpolicies/"
-	siteconfigUrl     = "/apis/site/v1alpha1/namespaces/default/siteconfigs"
-	timeFormat        = "2006-01-02"
+	buisnessPolicyUrl       = "/apis/businesspolicy/v1alpha1/namespaces/default/bprulesets/"
+	firewallPolicyUrl       = "/apis/firewall/v1alpha1/namespaces/default/fwpolicies/"
+	siteconfigUrl           = "/apis/site/v1alpha1/namespaces/default/siteconfigs"
+	timeFormat              = "2006-01-02"
+	dbName_default          = "cubs"
+	mysqlDomain_default     = "127.0.0.1:3308"
+	apiserverDomain_default = "127.0.0.1:8080"
+	username_default        = "root"
+	password_default        = "root"
 )
 
 var (
-	dbName          = "cubs"
-	mysqlDomain     = "127.0.0.1:3308"
-	apiserverDomain = "127.0.0.1:8080"
-	username        = "root"
-	password        = "root"
+	dbName          = dbName_default
+	mysqlDomain     = mysqlDomain_default
+	apiserverDomain = apiserverDomain_default
+	username        = username_default
+	password        = password_default
 )
 
 type Document struct {
@@ -206,7 +211,7 @@ func initDb() {
 	fmt.Println("input mysql domain: ")
 	fmt.Scanf("%s", &mysqlDomain)
 	if mysqlDomain == "" {
-		mysqlDomain = "127.0.0.1:3308"
+		mysqlDomain = mysqlDomain_default
 	}
 	fmt.Println("input mysql username:")
 	fmt.Scanf("%s", &username)
@@ -215,9 +220,15 @@ func initDb() {
 	fmt.Println("input apiserver domain")
 	fmt.Scanf("%s", &apiserverDomain)
 	if apiserverDomain == "" {
-		apiserverDomain = "127.0.0.1:8080"
+		apiserverDomain = apiserverDomain_default
 	}
-	fmt.Println("mysql login as root/root db:", dbName)
+	if username == "" {
+		username = username_default
+	}
+	if password == "" {
+		password = password_default
+	}
+	fmt.Println("mysql login in db:", dbName)
 }
 func updateMysqlEnableStatement(command string, idArr []string) {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
@@ -227,7 +238,7 @@ func updateMysqlEnableStatement(command string, idArr []string) {
 		db.Exec(command)
 	}
 }
-func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap map[string][]string) {
+func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string) {
 	policyUpdateCmd := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`="
 	firewallUpdateCmd := "UPDATE cubs.profile_firewall_rule SET `enabled` = 0  WHERE `id`="
 	for key, _ := range siteNameToSnMap {
@@ -246,7 +257,9 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today, expired_date)
 				fmt.Printf("change enabled to False. \n")
-				fmt.Println("policy:", idMap, " firewall:", fIdMap)
+				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
+				fmt.Println("fire bName: ", siteIdToFirewallBName[this_site_id])
+				fmt.Println("policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
 			}
 		}
 	}
@@ -279,10 +292,10 @@ func main() {
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 
 	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
-	checkTable(siteIdToPolicyBName)
+	//checkTable(siteIdToPolicyBName)
 	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
-	checkTable(siteIdToFirewallBName)
+	//checkTable(siteIdToFirewallBName)
 
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName)
 
 }
