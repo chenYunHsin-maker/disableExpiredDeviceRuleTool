@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -20,7 +22,7 @@ const (
 	timeFormat              = "2006-01-02"
 	dbName_default          = "cubs"
 	mysqlDomain_default     = "127.0.0.1:3308"
-	apiserverDomain_default = "127.0.0.1:8080"
+	apiserverDomain_default = "http://127.0.0.1:8080"
 	username_default        = "root"
 	password_default        = "root"
 )
@@ -49,6 +51,22 @@ type Document struct {
 	} `json:"items"`
 }
 
+func putRequest(url string, data io.Reader) {
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPut, url, data)
+	checkErr(err)
+	_, err = client.Do(req)
+	checkErr(err)
+}
+func updateJson(str string) string {
+	i := 0
+	for strings.Index(str, "\"enabled\":true,") != -1 {
+		i++
+		str = strings.Replace(str, "\"enabled\":true,", "\"enabled\":false,", 1)
+	}
+	fmt.Println("update ", i, "apiserver enabled fileds")
+	return str
+}
 func GetTaiwanTime() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
 	//fmt.Println(time.Now().In(loc))
@@ -68,7 +86,7 @@ func checkErr(err error) {
 }
 func getApiserverBody(apiserverDomain, siteUrl string) string {
 	//fmt.Println("start to get body")
-	resp, err := http.Get("http://" + apiserverDomain + siteUrl)
+	resp, err := http.Get(apiserverDomain + siteUrl)
 	checkErr(err)
 
 	defer resp.Body.Close()
@@ -238,6 +256,22 @@ func updateMysqlEnableStatement(command string, idArr []string) {
 		db.Exec(command)
 	}
 }
+func updateApiserver(beName, fBname string) {
+	targetUrl := apiserverDomain + buisnessPolicyUrl + beName
+	targetUrlF := apiserverDomain + firewallPolicyUrl + fBname
+	putToApiserver(targetUrl)
+	putToApiserver(targetUrlF)
+}
+func putToApiserver(targetUrl string) {
+	resp, err := http.Get(targetUrl)
+	checkErr(err)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	checkErr(err)
+	str := string(body[:])
+	str = updateJson(str)
+	putRequest(targetUrl, strings.NewReader(str))
+}
 func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string) {
 	policyUpdateCmd := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`="
 	firewallUpdateCmd := "UPDATE cubs.profile_firewall_rule SET `enabled` = 0  WHERE `id`="
@@ -255,6 +289,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
+				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today, expired_date)
 				fmt.Printf("change enabled to False. \n")
 				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
