@@ -274,7 +274,7 @@ func putToApiserver(targetUrl string) {
 	putRequest(targetUrl, strings.NewReader(str))
 }
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
-	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s\n", this_sn, today, expired_date)
+	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,close %d business rules %d firewall rules\n", this_sn, today, expired_date, len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
 	for i := 0; i < len(siteIdToBusinessNamesMap[this_site_id]); i++ {
 		glog.Infof("close business rule: %s\n", siteIdToBusinessNamesMap[this_site_id][i])
 	}
