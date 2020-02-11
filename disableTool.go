@@ -274,12 +274,12 @@ func putToApiserver(targetUrl string) {
 	putRequest(targetUrl, strings.NewReader(str))
 }
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
-	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,close %d business rules %d firewall rules\n", this_sn, today, expired_date, len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
+	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,will disable %d business rules %d firewall rules\n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat), len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
 	for i := 0; i < len(siteIdToBusinessNamesMap[this_site_id]); i++ {
-		glog.Infof("close business rule: %s\n", siteIdToBusinessNamesMap[this_site_id][i])
+		glog.Infof("disable business rule: %s\n", siteIdToBusinessNamesMap[this_site_id][i])
 	}
 	for i := 0; i < len(siteIdToFirewallNamesMap[this_site_id]); i++ {
-		glog.Infof("close firewall rule: %s\n", siteIdToFirewallNamesMap[this_site_id][i])
+		glog.Infof("disable firewall rule: %s\n", siteIdToFirewallNamesMap[this_site_id][i])
 	}
 	glog.Infof("business rule beName: %s\n", siteIdToPolicyBName[this_site_id][0])
 	glog.Infof("firewall rule beName: %s\n", siteIdToFirewallBName[this_site_id][0])
@@ -302,7 +302,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
-				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today, expired_date)
+				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
 				fmt.Printf("change enabled to False. \n")
 				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
 				fmt.Println("fire bName: ", siteIdToFirewallBName[this_site_id])
