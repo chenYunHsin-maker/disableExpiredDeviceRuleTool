@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/glog"
 	_ "github.com/syhlion/sqlwrapper"
 )
 
@@ -71,12 +73,6 @@ func GetTaiwanTime() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
 	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
-	return t
-}
-func GetFakeTime() time.Time {
-	//loc, _ := time.LoadLocation("Asia/Taipei")
-	//fmt.Println(time.Now().In(loc))
-	t, _ := ShortDateFromString("2087-01-01")
 	return t
 }
 func checkErr(err error) {
@@ -156,11 +152,12 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 	}
 	return snExpiredMap
 }
-func getMysqlProfilePolicyRule(rows *sql.Rows) map[string][]string {
+func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
 	//policyIdToRuleTypeMap := make(map[string][]string)
 
 	//policyIdToRuleNameMap := make(map[string][]string)
 	siteIdToIdMap := make(map[string][]string)
+	siteIdToBusnessNamesMap := make(map[string][]string)
 	//ruleName,ruleType,enabled,policyId
 	for rows.Next() {
 		var id sql.NullString
@@ -177,28 +174,32 @@ func getMysqlProfilePolicyRule(rows *sql.Rows) map[string][]string {
 
 			//policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
 			siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
+			siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
 		}
 
 		//fmt.Println("sn:", sn.String, " linked site id:", site.String)
 
 	}
-	return siteIdToIdMap
+	return siteIdToIdMap, siteIdToBusnessNamesMap
 }
-func getMysqlFirewallRule(rows *sql.Rows) map[string][]string {
+func getMysqlFirewallRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
 	siteIdToFirewallIdMap := make(map[string][]string)
+	siteIdToFirewallNamesMap := make(map[string][]string)
 	//ruleName,ruleType,enabled,policyId
 	for rows.Next() {
 		var id sql.NullString
+		var ruleName sql.NullString
 		var ruleType sql.NullString
 		var firewallId sql.NullString
-		if err := rows.Scan(&id, &ruleType, &firewallId); err != nil {
+		if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
 			fmt.Println(" err :", err)
 		}
 		if ruleType.String == "site" {
+			siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
 			siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
 		}
 	}
-	return siteIdToFirewallIdMap
+	return siteIdToFirewallIdMap, siteIdToFirewallNamesMap
 }
 func getSiteIdToPolicyBName(rows *sql.Rows) map[string][]string {
 	siteIdToPolicyBName := make(map[string][]string)
@@ -272,7 +273,18 @@ func putToApiserver(targetUrl string) {
 	str = updateJson(str)
 	putRequest(targetUrl, strings.NewReader(str))
 }
-func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string) {
+func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
+	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s\n", this_sn, today, expired_date)
+	for i := 0; i < len(siteIdToBusinessNamesMap[this_site_id]); i++ {
+		glog.Infof("close business rule: %s\n", siteIdToBusinessNamesMap[this_site_id][i])
+	}
+	for i := 0; i < len(siteIdToFirewallNamesMap[this_site_id]); i++ {
+		glog.Infof("close firewall rule: %s\n", siteIdToFirewallNamesMap[this_site_id][i])
+	}
+	glog.Infof("business rule beName: %s\n", siteIdToPolicyBName[this_site_id][0])
+	glog.Infof("firewall rule beName: %s\n", siteIdToFirewallBName[this_site_id][0])
+}
+func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap map[string][]string) {
 	policyUpdateCmd := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`="
 	firewallUpdateCmd := "UPDATE cubs.profile_firewall_rule SET `enabled` = 0  WHERE `id`="
 	for key, _ := range siteNameToSnMap {
@@ -286,7 +298,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				this_site_id := siteNameToSiteIdMap[key]
 				idMap := policyIdToIdMap[this_site_id]
 				fIdMap := FpolicyIdToIdMap[this_site_id]
-
+				generateLog(this_sn, this_site_id, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName, today, expired_date)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
@@ -295,6 +307,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
 				fmt.Println("fire bName: ", siteIdToFirewallBName[this_site_id])
 				fmt.Println("policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
+
 			}
 		}
 	}
@@ -307,12 +320,14 @@ func ShortDateFromString(ds string) (time.Time, error) {
 	return t, err
 }
 func main() {
+	flag.Parse()
+	defer glog.Flush()
 	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
 	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
-	rows3, _ := db.Query("SELECT  id,ruleType,firewallId FROM cubs.profile_firewall_rule;")
+	rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
 	rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
 	rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
 	defer rows.Close()
@@ -322,8 +337,8 @@ func main() {
 	defer rows5.Close()
 
 	snExpiredMap := getMysqlMap(rows)
-	BpolicyIdToIdMap := getMysqlProfilePolicyRule(rows2)
-	FpolicyIdToIdMap := getMysqlFirewallRule(rows3)
+	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(rows2)
+	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
 	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 
 	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
@@ -331,6 +346,6 @@ func main() {
 	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
 	//checkTable(siteIdToFirewallBName)
 
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
 
 }
