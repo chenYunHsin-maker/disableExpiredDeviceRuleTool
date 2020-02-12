@@ -27,6 +27,8 @@ const (
 	apiserverDomain_default = "http://127.0.0.1:8080"
 	username_default        = "root"
 	password_default        = "root"
+	from_date_default       = ""
+	to_date_default         = ""
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 	apiserverDomain = apiserverDomain_default
 	username        = username_default
 	password        = password_default
+	from_date       = from_date_default
+	to_date         = to_date_default
 )
 
 type Document struct {
@@ -238,6 +242,10 @@ func initDb() {
 	fmt.Scanf("%s", &password)
 	fmt.Println("input apiserver domain")
 	fmt.Scanf("%s", &apiserverDomain)
+	fmt.Println("watch license from date(format: 2020-02-12)")
+	fmt.Scanf("%s", &from_date)
+	fmt.Println("watch license to date(format: 2020-02-12)")
+	fmt.Scanf("%s", &to_date)
 	if apiserverDomain == "" {
 		apiserverDomain = apiserverDomain_default
 	}
@@ -247,6 +255,7 @@ func initDb() {
 	if password == "" {
 		password = password_default
 	}
+
 	fmt.Println("mysql login in db:", dbName)
 }
 func updateMysqlEnableStatement(command string, idArr []string) {
@@ -319,13 +328,35 @@ func ShortDateFromString(ds string) (time.Time, error) {
 	}
 	return t, err
 }
+func getSnExpiredQuery() *sql.Rows {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	var rows *sql.Rows
+	switch {
+	case from_date == "" && to_date == "":
+		command := "SELECT serial,new_expired FROM cubs.license_key;"
+		rows, _ = db.Query(command)
+	case from_date == "":
+		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) < '" + to_date + "'"
+		rows, _ = db.Query(command)
+	case to_date == "":
+		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) > '" + from_date + "'"
+		rows, _ = db.Query(command)
+	case from_date != "" && to_date != "":
+		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
+		rows, err = db.Query(command)
+		fmt.Println(command)
+	}
+
+	return rows
+}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
 	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
-	rows, _ := db.Query("SELECT serial,new_expired FROM cubs.license_key;")
+	rows := getSnExpiredQuery()
 	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
 	rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
 	rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
@@ -337,15 +368,17 @@ func main() {
 	defer rows5.Close()
 
 	snExpiredMap := getMysqlMap(rows)
-	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(rows2)
-	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
-	siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
+	checkTableS(snExpiredMap)
+	/*
+		BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(rows2)
+		FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
+		siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
 
-	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
-	//checkTable(siteIdToPolicyBName)
-	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
-	//checkTable(siteIdToFirewallBName)
+		siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
+		//checkTable(siteIdToPolicyBName)
+		siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
+		//checkTable(siteIdToFirewallBName)
 
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
-
+		checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
+	*/
 }
