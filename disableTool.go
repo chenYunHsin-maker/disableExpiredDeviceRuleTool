@@ -189,73 +189,93 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 		rows.Close()
 	}
 
-	//ruleName,ruleType,enabled,policyId
+	return siteIdToIdMap, siteIdToBusnessNamesMap
+}
+func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, map[string][]string) {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+
+	var id sql.NullString
+	var ruleName sql.NullString
+	var ruleType sql.NullString
+	var firewallId sql.NullString
+	command_part := "SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule WHERE ruleType='site' AND firewallId="
+	siteIdToFirewallIdMap := make(map[string][]string)
+	siteIdToFirewallNamesMap := make(map[string][]string)
+	for key, _ := range snToSiteid {
+		command := command_part + snToSiteid[key]
+		rows, _ := db.Query(command)
+		for rows.Next() {
+			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
+				fmt.Println(" err :", err)
+			}
+			siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
+			siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
+		}
+		rows.Close()
+
+	}
+
+	return siteIdToFirewallIdMap, siteIdToFirewallNamesMap
+}
+func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	siteIdToPolicyBName := make(map[string][]string)
+	command_part := "SELECT siteId,beName FROM cubs.site_policy WHERE siteId=;"
+	var id sql.NullString
+	var beName sql.NullString
+	for key, _ := range snToSite {
+		command := command_part + snToSite[key]
+		rows, _ := db.Query(command)
+		for rows.Next() {
+			if err := rows.Scan(&id, &beName); err != nil {
+				fmt.Println(" err :", err)
+			}
+			siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
+		}
+		rows.Close()
+
+	}
 	/*
 		for rows.Next() {
 			var id sql.NullString
-			var ruleName sql.NullString
-			var ruleType sql.NullString
-			var enabled sql.NullString
-			var policyId sql.NullString
-			if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
+			var beName sql.NullString
+			if err := rows.Scan(&id, &beName); err != nil {
 				fmt.Println(" err :", err)
 			}
-
-			if ruleType.String == "site" {
-				//idToRuleNameMap
-
-				//policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
-				siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
-				siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
-			}
-
-			//fmt.Println("sn:", sn.String, " linked site id:", site.String)
-
-		}
-	*/
-	return siteIdToIdMap, siteIdToBusnessNamesMap
-}
-func getMysqlFirewallRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
-	siteIdToFirewallIdMap := make(map[string][]string)
-	siteIdToFirewallNamesMap := make(map[string][]string)
-	//ruleName,ruleType,enabled,policyId
-	for rows.Next() {
-		var id sql.NullString
-		var ruleName sql.NullString
-		var ruleType sql.NullString
-		var firewallId sql.NullString
-		if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
-			fmt.Println(" err :", err)
-		}
-		if ruleType.String == "site" {
-			siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
-			siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
-		}
-	}
-	return siteIdToFirewallIdMap, siteIdToFirewallNamesMap
-}
-func getSiteIdToPolicyBName(rows *sql.Rows) map[string][]string {
-	siteIdToPolicyBName := make(map[string][]string)
-	for rows.Next() {
-		var id sql.NullString
-		var beName sql.NullString
-		if err := rows.Scan(&id, &beName); err != nil {
-			fmt.Println(" err :", err)
-		}
-		siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
-	}
+			siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
+		}*/
 	return siteIdToPolicyBName
 }
-func getSiteIdToFirewallBName(rows *sql.Rows) map[string][]string {
+func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
 	siteIdToFirewallBName := make(map[string][]string)
-	for rows.Next() {
-		var id sql.NullString
-		var beName sql.NullString
-		if err := rows.Scan(&id, &beName); err != nil {
-			fmt.Println(" err :", err)
+	command_part := "SELECT siteId,beName FROM cubs.site_firewall;"
+	var id sql.NullString
+	var beName sql.NullString
+	for key, _ := range snToSiteMap {
+		command := command_part + snToSiteMap[key]
+		rows, _ := db.Query(command)
+		for rows.Next() {
+			if err := rows.Scan(&id, &beName); err != nil {
+				fmt.Println(" err :", err)
+			}
+			siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
 		}
-		siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
+		rows.Close()
+
 	}
+	/*
+		for rows.Next() {
+			var id sql.NullString
+			var beName sql.NullString
+			if err := rows.Scan(&id, &beName); err != nil {
+				fmt.Println(" err :", err)
+			}
+			siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
+		}*/
 	return siteIdToFirewallBName
 }
 func initDb() {
@@ -382,22 +402,23 @@ func getSnExpiredQuery() *sql.Rows {
 func tmp(a map[string]string, b map[string]string, c map[string]string) {
 
 }
+
 func main() {
 	flag.Parse()
 	defer glog.Flush()
 	initDb()
-	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
-	checkErr(err)
+	//db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
+	//checkErr(err)
 
 	//rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
-	rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
-	rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
-	rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
+	//rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
+	//rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
+	//rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
 
 	//defer rows2.Close()
-	defer rows3.Close()
-	defer rows4.Close()
-	defer rows5.Close()
+	//defer rows3.Close()
+	//defer rows4.Close()
+	//defer rows5.Close()
 
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	//checkTableS(snExpiredMap)
@@ -405,17 +426,17 @@ func main() {
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId := getApiserverMap(apiserverDomain, snExpiredMap)
 	tmp(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap)
 	//checkTableS(snExpiredMap)
-	checkTableS(snToSiteId)
+	//checkTableS(snToSiteId)
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	//checkTable(BpolicyIdToIdMap)
 	//fmt.Println("==================================")
 	//checkTable(siteIdToBusnessNamesMap)
+	//====before ok
+	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 
-	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
-
-	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
+	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
 	//checkTable(siteIdToPolicyBName)
-	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
+	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
 	//checkTable(siteIdToFirewallBName)
 
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
