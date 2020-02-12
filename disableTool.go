@@ -436,7 +436,7 @@ func main() {
 
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	//====before ok
-	/checkTable(FpolicyIdToIdMap)
+	//checkTable(FpolicyIdToIdMap)
 	//checkTable(siteIdToFirewallNamesMap)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
 	//checkTable(siteIdToPolicyBName)
