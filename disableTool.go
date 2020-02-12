@@ -223,7 +223,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	siteIdToPolicyBName := make(map[string][]string)
-	command_part := "SELECT siteId,beName FROM cubs.site_policy WHERE siteId=;"
+	command_part := "SELECT siteId,beName FROM cubs.site_policy WHERE siteId="
 	var id sql.NullString
 	var beName sql.NullString
 	for key, _ := range snToSite {
@@ -254,7 +254,7 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	siteIdToFirewallBName := make(map[string][]string)
-	command_part := "SELECT siteId,beName FROM cubs.site_firewall;"
+	command_part := "SELECT siteId,beName FROM cubs.site_firewall WHERE siteId="
 	var id sql.NullString
 	var beName sql.NullString
 	for key, _ := range snToSiteMap {
@@ -433,9 +433,11 @@ func main() {
 	//checkTable(BpolicyIdToIdMap)
 	//fmt.Println("==================================")
 	//checkTable(siteIdToBusnessNamesMap)
-	//====before ok
-	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 
+	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
+	//====before ok
+	/checkTable(FpolicyIdToIdMap)
+	//checkTable(siteIdToFirewallNamesMap)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
 	//checkTable(siteIdToPolicyBName)
 	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
