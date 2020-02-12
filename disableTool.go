@@ -95,10 +95,10 @@ func getApiserverBody(apiserverDomain, siteUrl string) string {
 	//fmt.Println(s)
 	return s
 }
-func getApiserverMap(apiserverDomain string) (map[string]string, map[string]string) {
+func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (map[string]string, map[string]string, map[string]string) {
 	apiServerMap := make(map[string]string)
 	siteNameToSiteIdMap := make(map[string]string)
-
+	snToSiteId := make(map[string]string)
 	//apiServerDevice2Map := make(map[string][]string)
 	body := getApiserverBody(apiserverDomain, siteconfigUrl)
 	var document Document
@@ -113,14 +113,17 @@ func getApiserverMap(apiserverDomain string) (map[string]string, map[string]stri
 			this_siteId := strconv.Itoa(document.Items[i].Spec.SiteID)
 			//this_device2Sn := document.Items[i].Spec.Device2.Sn
 			//fmt.Println(snName)
-			siteNameToSiteIdMap[this_siteName] = this_siteId
-			apiServerMap[this_siteName] = this_sn
+			if _, ok := snExpiredMap[this_sn]; ok {
+				snToSiteId[this_sn] = this_siteId
+				siteNameToSiteIdMap[this_siteName] = this_siteId
+				apiServerMap[this_siteName] = this_sn
+			}
 
 			//fmt.Println("device2 ", this_device2Sn)
 			//apiServerDevice2Map[this_siteName] = append(apiServerDevice2Map[this_siteName], this_device2Sn)
 		}
 	}
-	return apiServerMap, siteNameToSiteIdMap
+	return apiServerMap, siteNameToSiteIdMap, snToSiteId
 }
 func checkTable(snSiteLinkedMap map[string][]string) {
 	fmt.Println("start to check map......")
@@ -141,14 +144,14 @@ func checkTableS(snSiteLinkedMap map[string]string) {
 func getMysqlMap(rows *sql.Rows) map[string]string {
 	snExpiredMap := make(map[string]string)
 	for rows.Next() {
-		var expired sql.NullString
+		var expired sql.NullTime
 		var sn sql.NullString
 		if err := rows.Scan(&sn, &expired); err != nil {
 			fmt.Println(" err :", err)
 		}
 		if sn.Valid == true {
 			if sn.String != "" {
-				snExpiredMap[sn.String] = expired.String
+				snExpiredMap[strings.Replace(sn.String, "default", "", 1)] = expired.Time.Format(timeFormat)
 			}
 
 			//fmt.Println("sn:", sn.String, " linked site id:", site.String)
@@ -156,34 +159,60 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 	}
 	return snExpiredMap
 }
-func getMysqlProfilePolicyRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
+func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string, map[string][]string) {
 	//policyIdToRuleTypeMap := make(map[string][]string)
 
 	//policyIdToRuleNameMap := make(map[string][]string)
+	var id sql.NullString
+	var ruleName sql.NullString
+	var ruleType sql.NullString
+	var enabled sql.NullString
+	var policyId sql.NullString
 	siteIdToIdMap := make(map[string][]string)
 	siteIdToBusnessNamesMap := make(map[string][]string)
-	//ruleName,ruleType,enabled,policyId
-	for rows.Next() {
-		var id sql.NullString
-		var ruleName sql.NullString
-		var ruleType sql.NullString
-		var enabled sql.NullString
-		var policyId sql.NullString
-		if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
-			fmt.Println(" err :", err)
-		}
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
+	checkErr(err)
+	command_part := "SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule WHERE `policyId`="
 
-		if ruleType.String == "site" {
-			//idToRuleNameMap
+	for key, _ := range snToSite {
+		command := command_part + snToSite[key] + " AND ruleType='site'"
+		//fmt.Println(command)
+		rows, _ := db.Query(command)
 
-			//policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
+		for rows.Next() {
+			if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
+				fmt.Println(" err :", err)
+			}
 			siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
 			siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
 		}
-
-		//fmt.Println("sn:", sn.String, " linked site id:", site.String)
-
+		rows.Close()
 	}
+
+	//ruleName,ruleType,enabled,policyId
+	/*
+		for rows.Next() {
+			var id sql.NullString
+			var ruleName sql.NullString
+			var ruleType sql.NullString
+			var enabled sql.NullString
+			var policyId sql.NullString
+			if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
+				fmt.Println(" err :", err)
+			}
+
+			if ruleType.String == "site" {
+				//idToRuleNameMap
+
+				//policyIdToRuleNameMap[policyId.String] = append(policyIdToRuleNameMap[policyId.String], ruleName.String)
+				siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
+				siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
+			}
+
+			//fmt.Println("sn:", sn.String, " linked site id:", site.String)
+
+		}
+	*/
 	return siteIdToIdMap, siteIdToBusnessNamesMap
 }
 func getMysqlFirewallRule(rows *sql.Rows) (map[string][]string, map[string][]string) {
@@ -334,21 +363,24 @@ func getSnExpiredQuery() *sql.Rows {
 	var rows *sql.Rows
 	switch {
 	case from_date == "" && to_date == "":
-		command := "SELECT serial,new_expired FROM cubs.license_key;"
+		command := "SELECT contractId,last_expired_at FROM cubs.contract;"
 		rows, _ = db.Query(command)
 	case from_date == "":
-		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) < '" + to_date + "'"
+		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) < '" + to_date + "'"
 		rows, _ = db.Query(command)
 	case to_date == "":
-		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) > '" + from_date + "'"
+		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) > '" + from_date + "'"
 		rows, _ = db.Query(command)
 	case from_date != "" && to_date != "":
-		command := "SELECT serial,new_expired FROM cubs.license_key  WHERE DATE(new_expired) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
+		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
 		rows, err = db.Query(command)
 		fmt.Println(command)
 	}
 
 	return rows
+}
+func tmp(a map[string]string, b map[string]string, c map[string]string) {
+
 }
 func main() {
 	flag.Parse()
@@ -356,29 +388,36 @@ func main() {
 	initDb()
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
-	rows := getSnExpiredQuery()
-	rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
+
+	//rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
 	rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
 	rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
 	rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
-	defer rows.Close()
-	defer rows2.Close()
+
+	//defer rows2.Close()
 	defer rows3.Close()
 	defer rows4.Close()
 	defer rows5.Close()
 
-	snExpiredMap := getMysqlMap(rows)
-	checkTableS(snExpiredMap)
-	/*
-		BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(rows2)
-		FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
-		siteNameToSnMap, siteNameToSiteIdMap := getApiserverMap(apiserverDomain)
+	snExpiredMap := getMysqlMap(getSnExpiredQuery())
+	//checkTableS(snExpiredMap)
 
-		siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
-		//checkTable(siteIdToPolicyBName)
-		siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
-		//checkTable(siteIdToFirewallBName)
+	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId := getApiserverMap(apiserverDomain, snExpiredMap)
+	tmp(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap)
+	//checkTableS(snExpiredMap)
+	checkTableS(snToSiteId)
+	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
+	//checkTable(BpolicyIdToIdMap)
+	//fmt.Println("==================================")
+	//checkTable(siteIdToBusnessNamesMap)
 
-		checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
-	*/
+	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(rows3)
+
+	siteIdToPolicyBName := getSiteIdToPolicyBName(rows4)
+	//checkTable(siteIdToPolicyBName)
+	siteIdToFirewallBName := getSiteIdToFirewallBName(rows5)
+	//checkTable(siteIdToFirewallBName)
+
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
+
 }
