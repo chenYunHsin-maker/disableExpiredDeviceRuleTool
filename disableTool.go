@@ -239,15 +239,6 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 		rows.Close()
 
 	}
-	/*
-		for rows.Next() {
-			var id sql.NullString
-			var beName sql.NullString
-			if err := rows.Scan(&id, &beName); err != nil {
-				fmt.Println(" err :", err)
-			}
-			siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
-		}*/
 	return siteIdToPolicyBName
 }
 func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string {
@@ -269,15 +260,6 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 		rows.Close()
 
 	}
-	/*
-		for rows.Next() {
-			var id sql.NullString
-			var beName sql.NullString
-			if err := rows.Scan(&id, &beName); err != nil {
-				fmt.Println(" err :", err)
-			}
-			siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
-		}*/
 	return siteIdToFirewallBName
 }
 func initDb() {
@@ -409,40 +391,13 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 	initDb()
-	//db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
-	//checkErr(err)
-
-	//rows2, _ := db.Query("SELECT  id,ruleName,ruleType,enabled,policyId FROM cubs.profile_policy_rule;")
-	//rows3, _ := db.Query("SELECT  id,ruleName,ruleType,firewallId FROM cubs.profile_firewall_rule;")
-	//rows4, _ := db.Query("SELECT siteId,beName FROM cubs.site_policy;")
-	//rows5, _ := db.Query("SELECT siteId,beName FROM cubs.site_firewall;")
-
-	//defer rows2.Close()
-	//defer rows3.Close()
-	//defer rows4.Close()
-	//defer rows5.Close()
-
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
-	//checkTableS(snExpiredMap)
-
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId := getApiserverMap(apiserverDomain, snExpiredMap)
 	tmp(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap)
-	//checkTableS(snExpiredMap)
-	//checkTableS(snToSiteId)
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
-	//checkTable(BpolicyIdToIdMap)
-	//fmt.Println("==================================")
-	//checkTable(siteIdToBusnessNamesMap)
-
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
-	//====before ok
-	//checkTable(FpolicyIdToIdMap)
-	//checkTable(siteIdToFirewallNamesMap)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
-	//checkTable(siteIdToPolicyBName)
 	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
-	//checkTable(siteIdToFirewallBName)
-
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
 
 }
