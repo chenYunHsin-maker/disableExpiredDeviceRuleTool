@@ -204,6 +204,7 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 	siteIdToFirewallNamesMap := make(map[string][]string)
 	for key, _ := range snToSiteid {
 		command := command_part + snToSiteid[key]
+		fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
@@ -227,6 +228,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 	var beName sql.NullString
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key]
+		fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
