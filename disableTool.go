@@ -346,8 +346,8 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
-				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy")
-				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall")
+				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
+				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
 				fmt.Printf("change enabled to False. \n")
 				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
@@ -389,10 +389,10 @@ func getSnExpiredQuery() *sql.Rows {
 	return rows
 }
 
-func pushLogToMysql(siteId string, siteName string, ruleType string) {
+func pushLogToMysql(siteId string, siteName string, ruleType string, rules []string) {
 
 	userId := -1
-	userName := "disable expired device cronJob"
+	userName := "License Check"
 	modulePage := "Site > Configuration > Device"
 	var requestDesc string
 	var feature string
@@ -402,12 +402,18 @@ func pushLogToMysql(siteId string, siteName string, ruleType string) {
 	case "Business Policy":
 		feature = "Business Policy"
 		requestDesc = "PUT /rest/site/updatesitepolicy/" + siteId
-		newValue = "New Value: [Update]/rest/site/updatesitepolicy/" + siteId
+		//newValue = "[Update]/rest/site/updatesitepolicy/" + siteId
 	case "Firewall":
 		feature = "Firewall"
 		requestDesc = "PUT /rest/site/updatesitefirewall/" + siteId
-		newValue = "New Value: [Update]/rest/site/updatesitefirewall/" + siteId
+		//newValue = "[Update]/rest/site/updatesitefirewall/" + siteId
 	}
+	newValue += "<br>disable: <br>"
+
+	for i := 0; i < len(rules); i++ {
+		newValue += rules[i] + ",<br>"
+	}
+	//newValue += "wioeuvwmiecrawurioauwpoieruaemcrweurcmioawecrmpaweucmaewauweopiurcu"
 	_, err = db.Exec(
 		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc,newValue) VALUES (?,?,?,?,?,?,?,?)",
 		userId,
