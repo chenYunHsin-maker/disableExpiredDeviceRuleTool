@@ -1,0 +1,176 @@
+Log file created at: 2020/02/12 00:30:31
+Running on machine: twpcnt03143-u8
+Binary: Built with gc go1.13.5 for linux/amd64
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0212 00:30:31.454534   93580 disableTool.go:319] sn S162L45290111 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:31.454719   93580 disableTool.go:326] business rule beName: bp-22p5v
+I0212 00:30:31.454732   93580 disableTool.go:327] firewall rule beName: fw-q930h
+I0212 00:30:32.404417   93580 disableTool.go:319] sn S172L39200051 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 1 business rules 1 firewall rules
+I0212 00:30:32.404439   93580 disableTool.go:321] disable business rule: S_New Policy
+I0212 00:30:32.404443   93580 disableTool.go:324] disable firewall rule: S_cf
+I0212 00:30:32.404446   93580 disableTool.go:326] business rule beName: bp-6q831
+I0212 00:30:32.404452   93580 disableTool.go:327] firewall rule beName: fw-b4jwp
+I0212 00:30:34.972069   93580 disableTool.go:319] sn S182L04100626 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:34.972088   93580 disableTool.go:326] business rule beName: bp-t9mx6
+I0212 00:30:34.972091   93580 disableTool.go:327] firewall rule beName: fw-rv9tw
+I0212 00:30:36.221874   93580 disableTool.go:319] sn S172L44200028 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:36.221895   93580 disableTool.go:326] business rule beName: bp-brph3
+I0212 00:30:36.221901   93580 disableTool.go:327] firewall rule beName: fw-7ncsr
+I0212 00:30:37.485644   93580 disableTool.go:319] sn S172L39200056 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:37.485657   93580 disableTool.go:326] business rule beName: bp-g0xgz
+I0212 00:30:37.485663   93580 disableTool.go:327] firewall rule beName: fw-6nrk5
+I0212 00:30:38.749707   93580 disableTool.go:319] sn S162L45190019 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 1 firewall rules
+I0212 00:30:38.749726   93580 disableTool.go:324] disable firewall rule: PC2_HTTP_DOWNLOAD
+I0212 00:30:38.749730   93580 disableTool.go:326] business rule beName: bp-929xt
+I0212 00:30:38.749732   93580 disableTool.go:327] firewall rule beName: fw-tvv2m
+I0212 00:30:40.644553   93580 disableTool.go:319] sn S162L44190049 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:40.644583   93580 disableTool.go:326] business rule beName: bp-06gf9
+I0212 00:30:40.644588   93580 disableTool.go:327] firewall rule beName: fw-p75h6
+I0212 00:30:41.985625   93580 disableTool.go:319] sn S172L44100108 's license is expired! today is 2020-02-12 expired_day is 2019-12-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:41.985639   93580 disableTool.go:326] business rule beName: bp-rs76b
+I0212 00:30:41.985642   93580 disableTool.go:327] firewall rule beName: fw-vf4l5
+I0212 00:30:43.245339   93580 disableTool.go:319] sn S162L45290104 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:43.245348   93580 disableTool.go:326] business rule beName: bp-x68bz
+I0212 00:30:43.245368   93580 disableTool.go:327] firewall rule beName: fw-jd449
+I0212 00:30:44.499129   93580 disableTool.go:319] sn S162L44190047 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 1 firewall rules
+I0212 00:30:44.499137   93580 disableTool.go:324] disable firewall rule: S_New Rule
+I0212 00:30:44.499157   93580 disableTool.go:326] business rule beName: bp-2nmsr
+I0212 00:30:44.499159   93580 disableTool.go:327] firewall rule beName: fw-h619c
+I0212 00:30:46.385720   93580 disableTool.go:319] sn S172L39200059 's license is expired! today is 2020-02-12 expired_day is 2019-12-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:46.385744   93580 disableTool.go:326] business rule beName: bp-27tgk
+I0212 00:30:46.385749   93580 disableTool.go:327] firewall rule beName: fw-stx03
+I0212 00:30:47.634671   93580 disableTool.go:319] sn S172L39200055 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:47.634684   93580 disableTool.go:326] business rule beName: bp-x5g89
+I0212 00:30:47.634687   93580 disableTool.go:327] firewall rule beName: fw-tktfp
+I0212 00:30:48.897869   93580 disableTool.go:319] sn S182L04100625 's license is expired! today is 2020-02-12 expired_day is 2020-01-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:48.897968   93580 disableTool.go:326] business rule beName: bp-m3068
+I0212 00:30:48.897984   93580 disableTool.go:327] firewall rule beName: fw-clxcj
+I0212 00:30:50.158698   93580 disableTool.go:319] sn S182L03200577 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:50.158706   93580 disableTool.go:326] business rule beName: bp-fsss6
+I0212 00:30:50.158709   93580 disableTool.go:327] firewall rule beName: fw-2lhkm
+I0212 00:30:51.428907   93580 disableTool.go:319] sn S162L45290108 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:51.428920   93580 disableTool.go:326] business rule beName: bp-273nh
+I0212 00:30:51.428944   93580 disableTool.go:327] firewall rule beName: fw-mswwk
+I0212 00:30:52.682340   93580 disableTool.go:319] sn S172L44100141 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:52.682380   93580 disableTool.go:326] business rule beName: bp-2dtll
+I0212 00:30:52.682396   93580 disableTool.go:327] firewall rule beName: fw-6v8hv
+I0212 00:30:53.952816   93580 disableTool.go:319] sn S172L27190015 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:53.952841   93580 disableTool.go:326] business rule beName: bp-rq1qc
+I0212 00:30:53.952845   93580 disableTool.go:327] firewall rule beName: fw-8tx2s
+I0212 00:30:55.210653   93580 disableTool.go:319] sn S172L44100138 's license is expired! today is 2020-02-12 expired_day is 2018-09-30,will disable 0 business rules 1 firewall rules
+I0212 00:30:55.210666   93580 disableTool.go:324] disable firewall rule: S_New Rule
+I0212 00:30:55.210672   93580 disableTool.go:326] business rule beName: bp-d9t93
+I0212 00:30:55.210676   93580 disableTool.go:327] firewall rule beName: fw-nrzwr
+I0212 00:30:57.111701   93580 disableTool.go:319] sn S172L44100140 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:57.111809   93580 disableTool.go:326] business rule beName: bp-9hh6n
+I0212 00:30:57.111815   93580 disableTool.go:327] firewall rule beName: fw-r6j6r
+I0212 00:30:58.369435   93580 disableTool.go:319] sn S172L39200078 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:30:58.369460   93580 disableTool.go:326] business rule beName: bp-8tf5z
+I0212 00:30:58.369465   93580 disableTool.go:327] firewall rule beName: fw-8l23f
+I0212 00:30:59.632421   93580 disableTool.go:319] sn S162L45290099 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 0 business rules 0 firewall rules
+I0212 00:30:59.632455   93580 disableTool.go:326] business rule beName: bp-z286m
+I0212 00:30:59.632482   93580 disableTool.go:327] firewall rule beName: fw-4tr7s
+I0212 00:31:00.891583   93580 disableTool.go:319] sn S182L04100473 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:00.891591   93580 disableTool.go:326] business rule beName: bp-793mf
+I0212 00:31:00.891594   93580 disableTool.go:327] firewall rule beName: fw-zpm69
+I0212 00:31:02.155584   93580 disableTool.go:319] sn S182L24102824 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:02.155612   93580 disableTool.go:326] business rule beName: bp-74psj
+I0212 00:31:02.155617   93580 disableTool.go:327] firewall rule beName: fw-pv2s8
+I0212 00:31:03.415340   93580 disableTool.go:319] sn S162L52280010 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:03.415347   93580 disableTool.go:326] business rule beName: bp-mmpwz
+I0212 00:31:03.415351   93580 disableTool.go:327] firewall rule beName: fw-mqxw4
+I0212 00:31:04.693938   93580 disableTool.go:319] sn S162L45290107 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:04.693955   93580 disableTool.go:326] business rule beName: bp-pwzmq
+I0212 00:31:04.693961   93580 disableTool.go:327] firewall rule beName: fw-mqpps
+I0212 00:31:05.963570   93580 disableTool.go:319] sn S162L45290114 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:05.963590   93580 disableTool.go:326] business rule beName: bp-73722
+I0212 00:31:05.963662   93580 disableTool.go:327] firewall rule beName: fw-s49ph
+I0212 00:31:07.219803   93580 disableTool.go:319] sn S172L34180003 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:07.219874   93580 disableTool.go:326] business rule beName: bp-1m3kw
+I0212 00:31:07.219881   93580 disableTool.go:327] firewall rule beName: fw-kl9lc
+I0212 00:31:08.473894   93580 disableTool.go:319] sn S162L44190051 's license is expired! today is 2020-02-12 expired_day is 2019-12-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:08.473914   93580 disableTool.go:326] business rule beName: bp-zzcsv
+I0212 00:31:08.473921   93580 disableTool.go:327] firewall rule beName: fw-4stpc
+I0212 00:31:09.741748   93580 disableTool.go:319] sn S182L24102835 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:09.741765   93580 disableTool.go:326] business rule beName: bp-4pfd9
+I0212 00:31:09.741773   93580 disableTool.go:327] firewall rule beName: fw-fhncw
+I0212 00:31:10.999224   93580 disableTool.go:319] sn S201808101105 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:10.999232   93580 disableTool.go:326] business rule beName: bp-pfr54
+I0212 00:31:10.999235   93580 disableTool.go:327] firewall rule beName: fw-t1zr8
+I0212 00:31:12.281974   93580 disableTool.go:319] sn S162L45290110 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:12.281983   93580 disableTool.go:326] business rule beName: bp-6w47s
+I0212 00:31:12.282002   93580 disableTool.go:327] firewall rule beName: fw-6qh3h
+I0212 00:31:13.538289   93580 disableTool.go:319] sn S162L45290047 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:13.538304   93580 disableTool.go:326] business rule beName: bp-8bbsf
+I0212 00:31:13.538312   93580 disableTool.go:327] firewall rule beName: fw-smvbr
+I0212 00:31:14.802990   93580 disableTool.go:319] sn S172L15290011 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:14.803093   93580 disableTool.go:326] business rule beName: bp-v6m0r
+I0212 00:31:14.803114   93580 disableTool.go:327] firewall rule beName: fw-596nx
+I0212 00:31:16.064231   93580 disableTool.go:319] sn S182L03200576 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:16.064295   93580 disableTool.go:326] business rule beName: bp-r77kt
+I0212 00:31:16.064309   93580 disableTool.go:327] firewall rule beName: fw-h6kfw
+I0212 00:31:17.325572   93580 disableTool.go:319] sn S182L40200099 's license is expired! today is 2020-02-12 expired_day is 2019-12-30,will disable 2 business rules 1 firewall rules
+I0212 00:31:17.325581   93580 disableTool.go:321] disable business rule: S_New-Policy
+I0212 00:31:17.325583   93580 disableTool.go:321] disable business rule: S_vickyTest
+I0212 00:31:17.325586   93580 disableTool.go:324] disable firewall rule: S_vickyFIre
+I0212 00:31:17.325633   93580 disableTool.go:326] business rule beName: bp-6dn14
+I0212 00:31:17.325642   93580 disableTool.go:327] firewall rule beName: fw-4qt7z
+I0212 00:31:20.045069   93580 disableTool.go:319] sn S172L39200054 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:20.045086   93580 disableTool.go:326] business rule beName: bp-dzqf9
+I0212 00:31:20.045092   93580 disableTool.go:327] firewall rule beName: fw-md2s6
+I0212 00:31:21.303104   93580 disableTool.go:319] sn S162L20200093 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 1 business rules 0 firewall rules
+I0212 00:31:21.303124   93580 disableTool.go:321] disable business rule: S_New Policy
+I0212 00:31:21.303128   93580 disableTool.go:326] business rule beName: bp-wjsx1
+I0212 00:31:21.303131   93580 disableTool.go:327] firewall rule beName: fw-0hrgg
+I0212 00:31:23.285578   93580 disableTool.go:319] sn S162L45290101 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:23.285590   93580 disableTool.go:326] business rule beName: bp-kp8lf
+I0212 00:31:23.285596   93580 disableTool.go:327] firewall rule beName: fw-18qnw
+I0212 00:31:24.547773   93580 disableTool.go:319] sn S162L45190036 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 2 business rules 1 firewall rules
+I0212 00:31:24.547810   93580 disableTool.go:321] disable business rule: S_test
+I0212 00:31:24.547815   93580 disableTool.go:321] disable business rule: S_New Policy
+I0212 00:31:24.547818   93580 disableTool.go:324] disable firewall rule: S_test
+I0212 00:31:24.547821   93580 disableTool.go:326] business rule beName: bp-18msm
+I0212 00:31:24.547825   93580 disableTool.go:327] firewall rule beName: fw-q6f9n
+I0212 00:31:27.278432   93580 disableTool.go:319] sn S172L44100047 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:27.278453   93580 disableTool.go:326] business rule beName: bp-p35tw
+I0212 00:31:27.278457   93580 disableTool.go:327] firewall rule beName: fw-81pnv
+I0212 00:31:28.537768   93580 disableTool.go:319] sn S172L39200052 's license is expired! today is 2020-02-12 expired_day is 2019-09-30,will disable 0 business rules 0 firewall rules
+I0212 00:31:28.537777   93580 disableTool.go:326] business rule beName: bp-nksgk
+I0212 00:31:28.537781   93580 disableTool.go:327] firewall rule beName: fw-dk9wr
+I0212 00:31:29.799650   93580 disableTool.go:319] sn S172L44100135 's license is expired! today is 2020-02-12 expired_day is 2018-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:29.799726   93580 disableTool.go:326] business rule beName: bp-4xvs5
+I0212 00:31:29.799732   93580 disableTool.go:327] firewall rule beName: fw-65v3t
+I0212 00:31:31.065705   93580 disableTool.go:319] sn S162L45190013 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:31.065750   93580 disableTool.go:326] business rule beName: bp-xxqdq
+I0212 00:31:31.065755   93580 disableTool.go:327] firewall rule beName: fw-b5trz
+I0212 00:31:32.325109   93580 disableTool.go:319] sn S162L20200094 's license is expired! today is 2020-02-12 expired_day is 2020-01-31,will disable 1 business rules 0 firewall rules
+I0212 00:31:32.325115   93580 disableTool.go:321] disable business rule: S_dpstest
+I0212 00:31:32.325118   93580 disableTool.go:326] business rule beName: bp-jsdd8
+I0212 00:31:32.325121   93580 disableTool.go:327] firewall rule beName: fw-h9bfv
+I0212 00:31:34.221518   93580 disableTool.go:319] sn S172L44200029 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:34.221526   93580 disableTool.go:326] business rule beName: bp-wkr0x
+I0212 00:31:34.221529   93580 disableTool.go:327] firewall rule beName: fw-j5wn3
+I0212 00:31:35.480218   93580 disableTool.go:319] sn S172L34180010 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 2 business rules 2 firewall rules
+I0212 00:31:35.480255   93580 disableTool.go:321] disable business rule: S_only_http
+I0212 00:31:35.480258   93580 disableTool.go:321] disable business rule: S_for_ssh
+I0212 00:31:35.480260   93580 disableTool.go:324] disable firewall rule: S_block_pc2
+I0212 00:31:35.480263   93580 disableTool.go:324] disable firewall rule: S_block_scp
+I0212 00:31:35.480282   93580 disableTool.go:326] business rule beName: bp-48qbv
+I0212 00:31:35.480285   93580 disableTool.go:327] firewall rule beName: fw-jd1k4
+I0212 00:31:38.328272   93580 disableTool.go:319] sn S172L44200027 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:38.328293   93580 disableTool.go:326] business rule beName: bp-1qv88
+I0212 00:31:38.328313   93580 disableTool.go:327] firewall rule beName: fw-mhqq3
+I0212 00:31:39.584256   93580 disableTool.go:319] sn S162L45290010 's license is expired! today is 2020-02-12 expired_day is 2019-11-30,will disable 5 business rules 0 firewall rules
+I0212 00:31:39.584276   93580 disableTool.go:321] disable business rule: S_test
+I0212 00:31:39.584279   93580 disableTool.go:321] disable business rule: S_dns
+I0212 00:31:39.584281   93580 disableTool.go:321] disable business rule: S_testsss
+I0212 00:31:39.584283   93580 disableTool.go:321] disable business rule: S_wan1
+I0212 00:31:39.584284   93580 disableTool.go:321] disable business rule: S_wan2
+I0212 00:31:39.584287   93580 disableTool.go:326] business rule beName: bp-nhtvl
+I0212 00:31:39.584290   93580 disableTool.go:327] firewall rule beName: fw-5mghx
+I0212 00:31:42.186177   93580 disableTool.go:319] sn S162L45290036 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:42.186196   93580 disableTool.go:326] business rule beName: bp-zgtvx
+I0212 00:31:42.186216   93580 disableTool.go:327] firewall rule beName: fw-387xc
+I0212 00:31:43.515449   93580 disableTool.go:319] sn S172L44200046 's license is expired! today is 2020-02-12 expired_day is 2019-10-31,will disable 0 business rules 0 firewall rules
+I0212 00:31:43.515474   93580 disableTool.go:326] business rule beName: bp-rmjc4
+I0212 00:31:43.515477   93580 disableTool.go:327] firewall rule beName: fw-gx41m

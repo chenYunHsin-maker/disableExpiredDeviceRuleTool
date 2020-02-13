@@ -204,7 +204,7 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 	siteIdToFirewallNamesMap := make(map[string][]string)
 	for key, _ := range snToSiteid {
 		command := command_part + snToSiteid[key]
-		fmt.Println(command)
+		//fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
@@ -228,7 +228,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 	var beName sql.NullString
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key]
-		fmt.Println(command)
+		//fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
@@ -378,13 +378,10 @@ func getSnExpiredQuery() *sql.Rows {
 	case from_date != "" && to_date != "":
 		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
 		rows, err = db.Query(command)
-		fmt.Println(command)
+		//fmt.Println(command)
 	}
 
 	return rows
-}
-func tmp(a map[string]string, b map[string]string, c map[string]string) {
-
 }
 
 func main() {
@@ -393,7 +390,7 @@ func main() {
 	initDb()
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId := getApiserverMap(apiserverDomain, snExpiredMap)
-	tmp(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap)
+
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
