@@ -95,10 +95,11 @@ func getApiserverBody(apiserverDomain, siteUrl string) string {
 	//fmt.Println(s)
 	return s
 }
-func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (map[string]string, map[string]string, map[string]string) {
+func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (map[string]string, map[string]string, map[string]string, []string) {
 	apiServerMap := make(map[string]string)
 	siteNameToSiteIdMap := make(map[string]string)
 	snToSiteId := make(map[string]string)
+	var siteIds []string
 	//apiServerDevice2Map := make(map[string][]string)
 	body := getApiserverBody(apiserverDomain, siteconfigUrl)
 	var document Document
@@ -111,6 +112,7 @@ func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (ma
 			this_sn := document.Items[i].Spec.Sn
 			this_siteName := document.Items[i].Metadata.Name
 			this_siteId := strconv.Itoa(document.Items[i].Spec.SiteID)
+			siteIds = append(siteIds, this_siteId)
 			//this_device2Sn := document.Items[i].Spec.Device2.Sn
 			//fmt.Println(snName)
 			if _, ok := snExpiredMap[this_sn]; ok {
@@ -123,7 +125,7 @@ func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (ma
 			//apiServerDevice2Map[this_siteName] = append(apiServerDevice2Map[this_siteName], this_device2Sn)
 		}
 	}
-	return apiServerMap, siteNameToSiteIdMap, snToSiteId
+	return apiServerMap, siteNameToSiteIdMap, snToSiteId, siteIds
 }
 func checkTable(snSiteLinkedMap map[string][]string) {
 	fmt.Println("start to check map......")
@@ -384,17 +386,64 @@ func getSnExpiredQuery() *sql.Rows {
 	return rows
 }
 
+/*
+func pushLogToMysql(siteId int64, siteName string, ruleType string) {
+
+	userId := -1
+	userName := "disable expired device cronJob"
+	modulePage := "Site > Configuration > Device"
+	var requestDesc string
+	var feature string
+	switch ruleType {
+	case "Business Policy":
+		feature = "Business Policy"
+		requestDesc = "PUT /rest/site/updatesitepolicy/" + strconv.Itoa(siteId)
+	case "Firewall":
+		feature = "Firewall"
+		requestDesc = "PUT /rest/site/updatesitefirewall/" + strconv.Itoa(siteId)
+	}
+	result, err := db.Exec(
+		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc) VALUES (?,?,?,?,?,?,?",
+		userId,
+		userName,
+		siteId,
+		siteName,
+		modulePage,
+		feature,
+		requestDesc
+	)
+}*/
+func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	siteIdToName := make(map[string]string)
+	var rows *sql.Rows
+	for i := 0; i < len(siteIds); i++ {
+		command := "SELECT siteName FROM cubs.site WHERE siteId = " + siteIds[i]
+		rows, _ = db.Query(command)
+		for rows.Next() {
+			var name sql.NullString
+			if err := rows.Scan(&name); err != nil {
+				fmt.Println(" err :", err)
+			}
+			siteIdToName[siteIds[i]] = name.String
+		}
+		rows.Close()
+	}
+	return siteIdToName
+}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
 	initDb()
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
-	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId := getApiserverMap(apiserverDomain, snExpiredMap)
+	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
+	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
 
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
 	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
-
+	checkTableS(siteIdName)
 }
