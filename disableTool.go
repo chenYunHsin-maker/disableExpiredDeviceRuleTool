@@ -396,17 +396,20 @@ func pushLogToMysql(siteId string, siteName string, ruleType string) {
 	modulePage := "Site > Configuration > Device"
 	var requestDesc string
 	var feature string
+	var newValue string
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	switch ruleType {
 	case "Business Policy":
 		feature = "Business Policy"
 		requestDesc = "PUT /rest/site/updatesitepolicy/" + siteId
+		newValue = "New Value: [Update]/rest/site/updatesitepolicy/" + siteId
 	case "Firewall":
 		feature = "Firewall"
 		requestDesc = "PUT /rest/site/updatesitefirewall/" + siteId
+		newValue = "New Value: [Update]/rest/site/updatesitefirewall/" + siteId
 	}
 	_, err = db.Exec(
-		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc) VALUES (?,?,?,?,?,?,?)",
+		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc,newValue) VALUES (?,?,?,?,?,?,?,?)",
 		userId,
 		userName,
 		siteId,
@@ -414,6 +417,7 @@ func pushLogToMysql(siteId string, siteName string, ruleType string) {
 		modulePage,
 		feature,
 		requestDesc,
+		newValue,
 	)
 	checkErr(err)
 	fmt.Println("pushLog:", userName, userId, siteId, siteName, modulePage, feature, requestDesc)
