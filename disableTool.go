@@ -178,7 +178,7 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key] + " AND ruleType='site'"
-		//fmt.Println(command)
+		fmt.Println(command)
 		rows, _ := db.Query(command)
 
 		for rows.Next() {
@@ -206,7 +206,7 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 	siteIdToFirewallNamesMap := make(map[string][]string)
 	for key, _ := range snToSiteid {
 		command := command_part + snToSiteid[key]
-		//fmt.Println(command)
+		fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
@@ -230,7 +230,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 	var beName sql.NullString
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key]
-		//fmt.Println(command)
+		fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
@@ -328,7 +328,7 @@ func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdT
 	glog.Infof("business rule beName: %s\n", siteIdToPolicyBName[this_site_id][0])
 	glog.Infof("firewall rule beName: %s\n", siteIdToFirewallBName[this_site_id][0])
 }
-func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap map[string][]string) {
+func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[string]string, policyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap map[string][]string, siteIdName map[string]string) {
 	policyUpdateCmd := "UPDATE cubs.profile_policy_rule SET `enabled` = 0  WHERE `id`="
 	firewallUpdateCmd := "UPDATE cubs.profile_firewall_rule SET `enabled` = 0  WHERE `id`="
 	for key, _ := range siteNameToSnMap {
@@ -346,6 +346,8 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
+				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy")
+				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall")
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
 				fmt.Printf("change enabled to False. \n")
 				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
@@ -367,52 +369,55 @@ func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	var rows *sql.Rows
+	var command string
 	switch {
 	case from_date == "" && to_date == "":
-		command := "SELECT contractId,last_expired_at FROM cubs.contract;"
+		command = "SELECT contractId,last_expired_at FROM cubs.contract;"
 		rows, _ = db.Query(command)
 	case from_date == "":
-		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) < '" + to_date + "'"
+		command = "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) < '" + to_date + "'"
 		rows, _ = db.Query(command)
 	case to_date == "":
-		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) > '" + from_date + "'"
+		command = "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) > '" + from_date + "'"
 		rows, _ = db.Query(command)
 	case from_date != "" && to_date != "":
-		command := "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
+		command = "SELECT contractId,last_expired_at FROM cubs.contract  WHERE DATE(last_expired_at) BETWEEN  '" + from_date + "' AND '" + to_date + "'"
 		rows, err = db.Query(command)
 		//fmt.Println(command)
 	}
-
+	fmt.Println(command)
 	return rows
 }
 
-/*
-func pushLogToMysql(siteId int64, siteName string, ruleType string) {
+func pushLogToMysql(siteId string, siteName string, ruleType string) {
 
 	userId := -1
 	userName := "disable expired device cronJob"
 	modulePage := "Site > Configuration > Device"
 	var requestDesc string
 	var feature string
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	switch ruleType {
 	case "Business Policy":
 		feature = "Business Policy"
-		requestDesc = "PUT /rest/site/updatesitepolicy/" + strconv.Itoa(siteId)
+		requestDesc = "PUT /rest/site/updatesitepolicy/" + siteId
 	case "Firewall":
 		feature = "Firewall"
-		requestDesc = "PUT /rest/site/updatesitefirewall/" + strconv.Itoa(siteId)
+		requestDesc = "PUT /rest/site/updatesitefirewall/" + siteId
 	}
-	result, err := db.Exec(
-		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc) VALUES (?,?,?,?,?,?,?",
+	_, err = db.Exec(
+		"INSERT INTO cubs.auth_useractivitylog(userId,userName,layerId,layerName,modulePage,feature,requestDesc) VALUES (?,?,?,?,?,?,?)",
 		userId,
 		userName,
 		siteId,
 		siteName,
 		modulePage,
 		feature,
-		requestDesc
+		requestDesc,
 	)
-}*/
+	checkErr(err)
+	fmt.Println("pushLog:", userName, userId, siteId, siteName, modulePage, feature, requestDesc)
+}
 func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
@@ -444,6 +449,6 @@ func main() {
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
 	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap)
-	checkTableS(siteIdName)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
+	//checkTableS(siteIdName)
 }
