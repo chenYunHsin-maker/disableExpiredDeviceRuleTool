@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"os"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	_ "github.com/syhlion/sqlwrapper"
@@ -450,7 +450,11 @@ func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 func main() {
 	flag.Parse()
 	defer glog.Flush()
-	initDb()
+	//initDb()
+	for i:=0;i<len(os.Args);i++{
+		fmt.Println("arg:",os.Args[i])
+	}
+	//fmt.Println("args4:",os.Args[4])
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
 	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
@@ -462,3 +466,4 @@ func main() {
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
 	//checkTableS(siteIdName)
 }
+
