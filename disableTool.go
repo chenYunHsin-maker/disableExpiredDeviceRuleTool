@@ -8,10 +8,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-	"os"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	_ "github.com/syhlion/sqlwrapper"
@@ -451,9 +452,22 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 	//initDb()
-	for i:=0;i<len(os.Args);i++{
-		fmt.Println("arg:",os.Args[i])
-	}
+	/*
+		for i := 0; i < len(os.Args); i++ {
+			fmt.Println("arg:", os.Args[i])
+		}*/
+	mysqlDomain = os.Args[1]
+	username = os.Args[2]
+	password = os.Args[3]
+	apiserverDomain = os.Args[4]
+	from_date = os.Args[5]
+	to_date = os.Args[6]
+	fmt.Println("mysql domain:", mysqlDomain)
+	fmt.Println("mysql username:", username)
+	fmt.Println("mysql password:", password)
+	fmt.Println("apiserver domain:", apiserverDomain)
+	fmt.Println("from date", from_date)
+	fmt.Println("to date:", to_date)
 	//fmt.Println("args4:",os.Args[4])
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
@@ -466,4 +480,3 @@ func main() {
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
 	//checkTableS(siteIdName)
 }
-

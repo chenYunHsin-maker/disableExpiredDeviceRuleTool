@@ -11,8 +11,8 @@ func main() {
 	//"*/3 * * * *"
 	//at minutes 0 (0 * * * *)
 	//at min0,1hour do 1 time (0 */1 * * *)
-	c.AddFunc("0 * * * *", func() {
-		fmt.Println("Hi! every 1 sec executing")
+	c.AddFunc("*/3 * * * * *", func() {
+		fmt.Println("Hi! every 3 sec executing")
 	})
 
 	go c.Start()
