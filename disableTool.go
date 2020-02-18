@@ -266,7 +266,7 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 	return siteIdToFirewallBName
 }
 func initDb() {
-
+	fmt.Println("timestamp:", GetTaiwanTime())
 	fmt.Println("input mysql domain: ")
 	fmt.Scanf("%s", &mysqlDomain)
 	if mysqlDomain == "" {

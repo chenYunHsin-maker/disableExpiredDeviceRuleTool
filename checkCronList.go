@@ -54,5 +54,5 @@ func main() {
 	checkErr(err)
 	stdout, err := cmd.Output()
 	checkErr(err)
-	fmt.Println(string(stdout))
+	fmt.Println("crontab added! use \"crontab -e\" or \"grep CRON /var/log/syslog\" to check!")
 }
