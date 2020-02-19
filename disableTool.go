@@ -88,6 +88,14 @@ func ShortDateFromString(ds string) (time.Time, error) {
 	}
 	return t, err
 }
+func ShortDateFromString2(ds string) (time.Time, error) {
+	t, err := time.Parse(detailTime, ds)
+	//fmt.Println("s:", t)
+	if err != nil {
+		return t, err
+	}
+	return t, err
+}
 func GetTaiwanTime2() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
 	//fmt.Println(time.Now().In(loc))
@@ -374,13 +382,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 		}
 	}
 }
-func ShortDateFromString(ds string) (time.Time, error) {
-	t, err := time.Parse(timeFormat, ds)
-	if err != nil {
-		return t, err
-	}
-	return t, err
-}
+
 func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)

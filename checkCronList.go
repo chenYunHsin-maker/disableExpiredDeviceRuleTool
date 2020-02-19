@@ -55,15 +55,11 @@ func ShortDateFromString2(ds string) (time.Time, error) {
 	}
 	return t, err
 }
-func main() {
-	crontabFileNm := "./crontabFile.txt"
-	file, err := os.Create(crontabFileNm)
-	checkErr(err)
+func getCronjobsMap() map[string]string {
 	db, err := sql.Open("mysql", username_default+":"+password_default+"@tcp("+mysqlDomain_default+")/"+dbName_default+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	command := "SELECT  cronCmd,cronjobName,freq FROM cubs.crontab"
 	rows, _ := db.Query(command)
-	var cronjobList string
 	cronjobs := make(map[string]string)
 	for rows.Next() {
 		var cronCmd sql.NullString
@@ -74,10 +70,13 @@ func main() {
 
 		}
 		cronjobs[cronjobName.String] = freq.String + " " + cronCmd.String
-
 	}
+
+	return cronjobs
+}
+func getCronjobList(cronjobs map[string]string) string {
+	var cronjobList string
 	dir, err := os.Getwd()
-	fmt.Println(dir)
 	checkErr(err)
 	for key, _ := range cronjobs {
 		path := dir + "/" + key + "_log_" + GetTaiwanTime().Format(timeFormat)
@@ -92,12 +91,21 @@ func main() {
 			fmt.Println("Cronjob: Check License")
 		}
 	}
-	fmt.Println(cronjobList)
-	file.WriteString(cronjobList)
+	return cronjobList
+}
+func main() {
+	crontabFileNm := "./crontabFile.txt"
+	file, err := os.Create(crontabFileNm)
+	checkErr(err)
+
+	cronjobs := getCronjobsMap()
+
+	//fmt.Println(cronjobList)
+	file.WriteString(getCronjobList(cronjobs))
 	file.Close()
 	cmd := exec.Command("crontab", "./crontabFile.txt")
-	stdout, err := cmd.Output()
-	fmt.Println(string(stdout))
+	_, err = cmd.Output()
+	//fmt.Println(string(stdout))
 	checkErr(err)
 	//
 
