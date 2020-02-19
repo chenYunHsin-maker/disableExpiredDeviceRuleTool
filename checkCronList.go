@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/syhlion/sqlwrapper"
@@ -16,12 +17,43 @@ const (
 	apiserverDomain_default = "http://127.0.0.1:8080"
 	username_default        = "root"
 	password_default        = "root"
+	timeFormat              = "2006-01-02"
+	detailTime              = "2006-01-02_150405"
 )
 
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetTaiwanTime() time.Time {
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	//fmt.Println(time.Now().In(loc))
+	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
+	return t
+}
+func ShortDateFromString(ds string) (time.Time, error) {
+	t, err := time.Parse(timeFormat, ds)
+	if err != nil {
+		return t, err
+	}
+	return t, err
+}
+func GetTaiwanTime2() time.Time {
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	//fmt.Println(time.Now().In(loc))
+	t, _ := ShortDateFromString2(time.Now().In(loc).Format(detailTime))
+	//fmt.Println("t:", t)
+	return t
+}
+func ShortDateFromString2(ds string) (time.Time, error) {
+	t, err := time.Parse(detailTime, ds)
+	//fmt.Println("s:", t)
+	if err != nil {
+		return t, err
+	}
+	return t, err
 }
 func main() {
 	crontabFileNm := "./crontabFile.txt"
@@ -44,15 +76,30 @@ func main() {
 		cronjobs[cronjobName.String] = freq.String + " " + cronCmd.String
 
 	}
+	dir, err := os.Getwd()
+	fmt.Println(dir)
+	checkErr(err)
 	for key, _ := range cronjobs {
-		cronjobList += cronjobs[key] + "\n"
+		path := dir + "/" + key + "_log_" + GetTaiwanTime().Format(timeFormat)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			os.Mkdir(path, os.ModePerm)
+		}
+
+		cronjobList += cronjobs[key] + " >> " + path + "/" + GetTaiwanTime2().Format(detailTime) + ".log" + " 2>&1" + "\n"
+
+		switch key {
+		case "CheckLicense":
+			fmt.Println("Cronjob: Check License")
+		}
 	}
+	fmt.Println(cronjobList)
 	file.WriteString(cronjobList)
 	file.Close()
-
 	cmd := exec.Command("crontab", "./crontabFile.txt")
-	checkErr(err)
 	stdout, err := cmd.Output()
+	fmt.Println(string(stdout))
 	checkErr(err)
-	fmt.Println("crontab added! use \"crontab -e\" or \"grep CRON /var/log/syslog\" to check!")
+	//
+
+	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 }

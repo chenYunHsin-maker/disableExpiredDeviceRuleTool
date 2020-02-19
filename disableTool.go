@@ -30,6 +30,7 @@ const (
 	password_default        = "root"
 	from_date_default       = ""
 	to_date_default         = ""
+	detailTime              = "2006-01-02_150405"
 )
 
 var (
@@ -78,6 +79,20 @@ func GetTaiwanTime() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
 	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
+	return t
+}
+func ShortDateFromString(ds string) (time.Time, error) {
+	t, err := time.Parse(timeFormat, ds)
+	if err != nil {
+		return t, err
+	}
+	return t, err
+}
+func GetTaiwanTime2() time.Time {
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	//fmt.Println(time.Now().In(loc))
+	t, _ := ShortDateFromString2(time.Now().In(loc).Format(detailTime))
+	//fmt.Println("t:", t)
 	return t
 }
 func checkErr(err error) {
@@ -266,7 +281,7 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 	return siteIdToFirewallBName
 }
 func initDb() {
-	fmt.Println("timestamp:", GetTaiwanTime())
+
 	fmt.Println("input mysql domain: ")
 	fmt.Scanf("%s", &mysqlDomain)
 	if mysqlDomain == "" {
@@ -462,6 +477,7 @@ func main() {
 	apiserverDomain = os.Args[4]
 	from_date = os.Args[5]
 	to_date = os.Args[6]
+	fmt.Println("timestamp:", GetTaiwanTime2().Format(detailTime))
 	fmt.Println("mysql domain:", mysqlDomain)
 	fmt.Println("mysql username:", username)
 	fmt.Println("mysql password:", password)

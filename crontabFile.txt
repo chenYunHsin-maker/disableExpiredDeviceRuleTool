@@ -1,1 +1,1 @@
-*/1 * * * * cd /home/zyxel/vicky/zyxelProjects/docker-test/disableExpiredDeviceRuleTool/ && ./disableTool 127.0.0.1:3308 root root http://127.0.0.1:8080 2000-01-01 2019-11-01 >> /home/zyxel/vicky/cron5.log 2>&1
+*/1 * * * * cd /home/zyxel/vicky/zyxelProjects/docker-test/disableExpiredDeviceRuleTool/ && ./disableTool 127.0.0.1:3308 root root http://127.0.0.1:8080 2000-01-01 2019-11-01 >> /home/zyxel/vicky/zyxelProjects/docker-test/disableExpiredDeviceRuleTool/CheckLicense_log_2020-02-19/2020-02-19_102319.log 2>&1
