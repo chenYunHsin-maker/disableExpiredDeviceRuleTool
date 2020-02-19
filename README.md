@@ -12,16 +12,16 @@ ex:
 {
 	"JobNms": [
 		{
-			"jobNm":{cronjobName},
 			"config":{
+                "jobNm":{cronjobName},
 				"db1": {db1},
 				"db2": {db2},
 				"db3": {db3}
 			}
 		},
 		{
-			"jobNm": {cronjobName},
 			"config":{
+                "jobNm": {cronjobName},
 				"db1": {db1},
 				"db2": {db2},
 			}

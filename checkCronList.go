@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
@@ -22,17 +24,17 @@ const (
 )
 
 type Config struct {
-	FileNms []struct {
-		Config	struct {
-			ApiserverDomain	string	`json:"apiserverDomain,omitempty"`
-			FromDate	string	`json:"from_date,omitempty"`
-			MysqlDomain	string	`json:"mysqlDomain,omitempty"`
-			Password	string	`json:"password,omitempty"`
-			ToDate		string	`json:"to_date,omitempty"`
-			Username	string	`json:"username,omitempty"`
-		}	`json:"config"`
-		FileNm	string	`json:"fileNm"`
-	} `json:"FileNms"
+	JobNms []struct {
+		Config struct {
+			JobNm           string `json:"jobNm"`
+			ApiserverDomain string `json:"apiserverDomain,omitempty"`
+			FromDate        string `json:"from_date,omitempty"`
+			MysqlDomain     string `json:"mysqlDomain,omitempty"`
+			Password        string `json:"password,omitempty"`
+			ToDate          string `json:"to_date,omitempty"`
+			Username        string `json:"username,omitempty"`
+		} `json:"config"`
+	} `json:"jobNms"`
 }
 
 func checkErr(err error) {
@@ -90,6 +92,7 @@ func getCronjobsMap() map[string]string {
 }
 func getCronjobList(cronjobs map[string]string) string {
 	var cronjobList string
+
 	dir, err := os.Getwd()
 	checkErr(err)
 	for key, _ := range cronjobs {
@@ -106,8 +109,23 @@ func getCronjobList(cronjobs map[string]string) string {
 	}
 	return cronjobList
 }
+func getJsonToStruct() Config {
+	var configObj Config
+	data, err := ioutil.ReadFile("./conf.json")
+	err = json.Unmarshal(data, &configObj)
+	checkErr(err)
+	return configObj
+}
 func main() {
 	crontabFileNm := "./crontabFile.txt"
+
+	var configObj Config
+	configObj = getJsonToStruct()
+
+	//fmt.Println(configObj)
+	for i := 0; i < len(configObj.JobNms); i++ {
+		fmt.Println("cronjob config name:", configObj.JobNms[i].Config.JobNm)
+	}
 	file, err := os.Create(crontabFileNm)
 	checkErr(err)
 	cronjobs := getCronjobsMap()

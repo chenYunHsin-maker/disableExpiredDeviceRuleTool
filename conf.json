@@ -1,16 +1,18 @@
 {
 	"jobNms": [
 		{
-			"jobNm":"checkCronList",
+
 			"config":{
+				"jobNm": "checkCronList",
 				"username": "root",
 				"password": "root",
 				"mysqlDomain": "127.0.0.1:3308"
 			}
 		},
 		{
-			"jobNm": "CheckLicense",
+
 			"config":{
+				"jobNm": "CheckLicense",
 				"username": "root",
 				"password": "root",
 				"mysqlDomain": "127.0.0.1:3308",
@@ -20,4 +22,5 @@
 			}
 		}
 	]
+
 }
