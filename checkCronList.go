@@ -21,6 +21,20 @@ const (
 	detailTime              = "2006-01-02_150405"
 )
 
+type Config struct {
+	FileNms []struct {
+		Config	struct {
+			ApiserverDomain	string	`json:"apiserverDomain,omitempty"`
+			FromDate	string	`json:"from_date,omitempty"`
+			MysqlDomain	string	`json:"mysqlDomain,omitempty"`
+			Password	string	`json:"password,omitempty"`
+			ToDate		string	`json:"to_date,omitempty"`
+			Username	string	`json:"username,omitempty"`
+		}	`json:"config"`
+		FileNm	string	`json:"fileNm"`
+	} `json:"FileNms"
+}
+
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
@@ -83,7 +97,6 @@ func getCronjobList(cronjobs map[string]string) string {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			os.Mkdir(path, os.ModePerm)
 		}
-
 		cronjobList += cronjobs[key] + " >> " + path + "/" + GetTaiwanTime2().Format(detailTime) + ".log" + " 2>&1" + "\n"
 
 		switch key {
@@ -97,17 +110,11 @@ func main() {
 	crontabFileNm := "./crontabFile.txt"
 	file, err := os.Create(crontabFileNm)
 	checkErr(err)
-
 	cronjobs := getCronjobsMap()
-
-	//fmt.Println(cronjobList)
 	file.WriteString(getCronjobList(cronjobs))
 	file.Close()
 	cmd := exec.Command("crontab", "./crontabFile.txt")
 	_, err = cmd.Output()
-	//fmt.Println(string(stdout))
 	checkErr(err)
-	//
-
 	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 }

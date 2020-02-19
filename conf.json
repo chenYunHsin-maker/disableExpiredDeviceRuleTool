@@ -1,0 +1,23 @@
+{
+	"jobNms": [
+		{
+			"jobNm":"checkCronList",
+			"config":{
+				"username": "root",
+				"password": "root",
+				"mysqlDomain": "127.0.0.1:3308"
+			}
+		},
+		{
+			"jobNm": "CheckLicense",
+			"config":{
+				"username": "root",
+				"password": "root",
+				"mysqlDomain": "127.0.0.1:3308",
+				"apiserverDomain": "http://127.0.0.1:8080",
+				"from_date": "2019-10-31",
+				"to_date": "2019-11-01"
+			}
+		}
+	]
+}
