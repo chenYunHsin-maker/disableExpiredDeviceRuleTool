@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"net/http"
+	"os/exec"
+
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"os/exec"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,8 +18,8 @@ import (
 
 const (
 	dbName_default          = "cubs"
-	mysqlDomain_default     = "127.0.0.1:3308"
-	apiserverDomain_default = "http://127.0.0.1:8080"
+	mysqlDomain_default     = "sdwan-orch-db-orchestrator-db:3306"
+	apiserverDomain_default = "http://sdwan-api-01-apiserver:80"
 	username_default        = "root"
 	password_default        = "root"
 	timeFormat              = "2006-01-02"
@@ -138,12 +139,23 @@ func syncCrontab() {
 	checkErr(err)
 	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 }
+
 func main() {
+	/*
+		cmd := exec.Command("crontab", "-e")
+		_, err := cmd.Output()
+		checkErr(err)*/
+
 	e := echo.New()
 	e.GET("/sync", func(c echo.Context) error {
 		syncCrontab()
+
 		return c.String(http.StatusOK, "crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 	})
 	e.Logger.Fatal(e.Start(":1323"))
+	/*
+		e.Post("/add", func(c echo.Context) error {
+
+		})*/
 
 }
