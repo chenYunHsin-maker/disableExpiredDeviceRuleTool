@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"net/http"
 	"os/exec"
 
@@ -24,6 +25,13 @@ const (
 	password_default        = "root"
 	timeFormat              = "2006-01-02"
 	detailTime              = "2006-01-02_150405"
+)
+
+var (
+	mysqlDomain     string
+	apiserverDomain string
+	username        string
+	password        string
 )
 
 type Config struct {
@@ -139,13 +147,19 @@ func syncCrontab() {
 	checkErr(err)
 	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 }
-
+func init() {
+	flag.StringVar(&mysqlDomain, "mysqlDomain", "sdwan-orch-db-orchestrator-db:3306", "it's mysql domain")
+	flag.StringVar(&username, "username", "root", "mysql login username")
+	flag.StringVar(&password, "password", "root", "mysql login password")
+	flag.StringVar(&apiserverDomain, "apiserverDomain", "http://sdwan-api-01-apiserver:80", "it's apiserver domain")
+}
 func main() {
 	/*
 		cmd := exec.Command("crontab", "-e")
 		_, err := cmd.Output()
 		checkErr(err)*/
-
+	flag.Parse()
+	fmt.Println(apiserverDomain)
 	e := echo.New()
 	e.GET("/sync", func(c echo.Context) error {
 		syncCrontab()
