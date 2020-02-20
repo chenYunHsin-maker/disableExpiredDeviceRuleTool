@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/labstack/echo"
 	_ "github.com/syhlion/sqlwrapper"
 )
 
@@ -116,7 +118,7 @@ func getJsonToStruct() Config {
 	checkErr(err)
 	return configObj
 }
-func main() {
+func syncCrontab() {
 	crontabFileNm := "./crontabFile.txt"
 
 	var configObj Config
@@ -135,4 +137,13 @@ func main() {
 	_, err = cmd.Output()
 	checkErr(err)
 	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
+}
+func main() {
+	e := echo.New()
+	e.GET("/sync", func(c echo.Context) error {
+		syncCrontab()
+		return c.String(http.StatusOK, "crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
+	})
+	e.Logger.Fatal(e.Start(":1323"))
+
 }
