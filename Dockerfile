@@ -7,5 +7,5 @@ COPY conf.json /sync/
 COPY checkCronList /sync/
 RUN mkdir -p /sync/log
 EXPOSE 6060
-ENTRYPOINT ["/sync/checkCronList","-mysqlDomain","-username","password","-apiserverDomain"]
+ENTRYPOINT ["/sync/checkCronList","-mysqlDomain","-username","-password","-apiserverDomain"]
 
