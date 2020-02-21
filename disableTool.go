@@ -426,10 +426,10 @@ func pushLogToMysql(siteId string, siteName string, ruleType string, rules []str
 		requestDesc = "PUT /rest/site/updatesitefirewall/" + siteId
 		//newValue = "[Update]/rest/site/updatesitefirewall/" + siteId
 	}
-	newValue += "<br>disable: <br>"
+	newValue += "<br>Disable the following rule(s): <br>"
 
 	for i := 0; i < len(rules); i++ {
-		newValue += rules[i] + ",<br>"
+		newValue += rules[i] + "<br>"
 	}
 	//newValue += "wioeuvwmiecrawurioauwpoieruaemcrweurcmioawecrmpaweucmaewauweopiurcu"
 	_, err = db.Exec(
