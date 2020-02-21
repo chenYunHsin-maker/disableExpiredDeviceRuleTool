@@ -34,6 +34,13 @@ var (
 	password        string
 )
 
+type Cronjob struct {
+	//原来golang对变量是否包外可访问，是通过变量名的首字母是否大小写来决定的
+	Name string `json:"name" form:"name" query:"name"`
+	Freq string `json:"freq" form:"freq" query:"freq"`
+	Cmd  string `json:"cmd" form:"cmd" query:"cmd"`
+}
+
 type Config struct {
 	JobNms []struct {
 		Config struct {
@@ -83,7 +90,7 @@ func ShortDateFromString2(ds string) (time.Time, error) {
 	return t, err
 }
 func getCronjobsMap() map[string]string {
-	db, err := sql.Open("mysql", username_default+":"+password_default+"@tcp("+mysqlDomain_default+")/"+dbName_default+"?charset=utf8&parseTime=True")
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs"+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	command := "SELECT  cronCmd,cronjobName,freq FROM cubs.crontab"
 	rows, _ := db.Query(command)
@@ -153,6 +160,21 @@ func init() {
 	flag.StringVar(&password, "password", "root", "mysql login password")
 	flag.StringVar(&apiserverDomain, "apiserverDomain", "http://sdwan-api-01-apiserver:80", "it's apiserver domain")
 }
+func createCronjob(job Cronjob) {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
+	cmd := "INSERT INTO cubs.crontab(cronjobName,cronCmd,freq) VALUES (?,?,?);"
+	_, err = db.Exec(cmd, job.Name, job.Cmd, job.Freq)
+	checkErr(err)
+}
+func updateCronjob(job Cronjob) {
+
+	//UPDATE cubs.crontab SET `cronCmd` = './maomao',`freq`='1 * * * *'  WHERE cronjobName= 'vicky';
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
+	cmd := "UPDATE cubs.crontab SET `cronCmd` = '" + job.Cmd + "',`freq`='" + job.Freq + "' " + "WHERE cronjobName= '" + job.Name + "';"
+	fmt.Println(cmd)
+	_, err = db.Exec(cmd)
+	checkErr(err)
+}
 func main() {
 	/*
 		cmd := exec.Command("crontab", "-e")
@@ -166,10 +188,26 @@ func main() {
 
 		return c.String(http.StatusOK, "crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 	})
-	e.Logger.Fatal(e.Start(":1323"))
-	/*
-		e.Post("/add", func(c echo.Context) error {
+	e.POST("/createCronjob", func(c echo.Context) error {
 
-		})*/
+		job := new(Cronjob)
+		//fmt.Println(c.Request().Body)
+		if err := c.Bind(job); err != nil {
+			return err
+		}
+		createCronjob(*job)
+		return c.JSON(http.StatusOK, job)
+	})
+	e.POST("/updateCronjob", func(c echo.Context) error {
+
+		job := new(Cronjob)
+		//fmt.Println(c.Request().Body)
+		if err := c.Bind(job); err != nil {
+			return err
+		}
+		updateCronjob(*job)
+		return c.JSON(http.StatusOK, job)
+	})
+	e.Logger.Fatal(e.Start(":1323"))
 
 }
