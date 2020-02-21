@@ -166,6 +166,38 @@ func createCronjob(job Cronjob) {
 	_, err = db.Exec(cmd, job.Name, job.Cmd, job.Freq)
 	checkErr(err)
 }
+func readCronjob(name string) string {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
+	checkErr(err)
+	command := "SELECT cronjobName,cronCmd,freq FROM cubs.crontab WHERE cronjobName='" + name + "';"
+	fmt.Println(command)
+	rows, _ := db.Query(command)
+	var resultStr string
+	var count int64
+
+	checkErr(err)
+	for rows.Next() {
+		err = rows.Scan(&count)
+		var cronjobName sql.NullString
+		var cronjobCmd sql.NullString
+		var freq sql.NullString
+		if err := rows.Scan(&cronjobName, &cronjobCmd, &freq); err != nil {
+			fmt.Println(" err :", err)
+		}
+		if cronjobName.Valid {
+			resultStr = "cronjobName: " + cronjobName.String + " cronjobCmd:" + cronjobCmd.String + " freq:" + freq.String
+		} else {
+
+		}
+
+	}
+	if count == 0 {
+		resultStr = "please verify if your cronjobName: " + name + " is exist"
+	}
+	rows.Close()
+	return resultStr
+
+}
 func updateCronjob(job Cronjob) {
 
 	//UPDATE cubs.crontab SET `cronCmd` = './maomao',`freq`='1 * * * *'  WHERE cronjobName= 'vicky';
@@ -174,6 +206,29 @@ func updateCronjob(job Cronjob) {
 	fmt.Println(cmd)
 	_, err = db.Exec(cmd)
 	checkErr(err)
+}
+func deleteCronjob(name string) string {
+	var resultStr string
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
+	checkErr(err)
+	command := "DELETE FROM cubs.crontab WHERE cronjobName='" + name + "';"
+	fmt.Println(command)
+	res, err := db.Exec(command)
+	if err == nil {
+		cnt, err := res.RowsAffected()
+		if err == nil {
+			switch cnt {
+			case 0:
+				resultStr = "please verify if " + name + " is exist"
+			case 1:
+				resultStr = "delete " + name + " successfully!"
+			}
+		}
+	}
+	checkErr(err)
+
+	return resultStr
+
 }
 func main() {
 	/*
@@ -207,6 +262,20 @@ func main() {
 		}
 		updateCronjob(*job)
 		return c.JSON(http.StatusOK, job)
+	})
+	e.GET("/readCronjob/:name", func(c echo.Context) error {
+		name := c.Param("name")
+		//readCronjob(name)
+		//fmt.Println("name:", name)
+		resultStr := readCronjob(name)
+		return c.String(http.StatusOK, resultStr)
+	})
+	e.GET("/deleteCronjob/:name", func(c echo.Context) error {
+		name := c.Param("name")
+		//readCronjob(name)
+		//fmt.Println("name:", name)
+		resultStr := deleteCronjob(name)
+		return c.String(http.StatusOK, resultStr)
 	})
 	e.Logger.Fatal(e.Start(":1323"))
 
