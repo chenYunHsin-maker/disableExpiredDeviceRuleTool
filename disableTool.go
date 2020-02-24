@@ -543,15 +543,15 @@ func main() {
 	checkTableS(siteNameToSnMap)
 	checkTableS(siteNameToSiteIdMap)
 	checkTableS(snToSiteId)
-	/*
-		siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
 
-		BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
-		FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
-		siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
-		siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
-		checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
-	*/
+	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
+
+	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
+	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
+	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
+	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
+
 	siteToB, siteToF := getSiteIdToOrderedIdMaps(siteIds)
 	checkTable(siteToB)
 	checkTable(siteToF)
