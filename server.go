@@ -30,5 +30,5 @@ func main() {
 		//resultStr := name + "_" + freq + "_" + cmd
 		return c.JSON(http.StatusOK, job)
 	})
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(":3143"))
 }

@@ -1,0 +1,1 @@
+0 0 */1 * * /sync/disableTool sdwan-orch-db-orchestrator-db:3306 root root http://sdwan-api-01-apiserver:80 2000-01-01 2019-11-01 >> /home/zyxel/vicky/zyxelProjects/docker-test/disableExpiredDeviceRuleTool/CheckLicense_log_2020-02-21/2020-02-21_170217.log 2>&1

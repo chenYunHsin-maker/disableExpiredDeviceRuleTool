@@ -2,13 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"flag"
 	"net/http"
 	"os/exec"
 
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -127,23 +125,10 @@ func getCronjobList(cronjobs map[string]string) string {
 	}
 	return cronjobList
 }
-func getJsonToStruct() Config {
-	var configObj Config
-	data, err := ioutil.ReadFile("./conf.json")
-	err = json.Unmarshal(data, &configObj)
-	checkErr(err)
-	return configObj
-}
+
 func syncCrontab() {
 	crontabFileNm := "./crontabFile.txt"
 
-	var configObj Config
-	configObj = getJsonToStruct()
-
-	//fmt.Println(configObj)
-	for i := 0; i < len(configObj.JobNms); i++ {
-		fmt.Println("cronjob config name:", configObj.JobNms[i].Config.JobNm)
-	}
 	file, err := os.Create(crontabFileNm)
 	checkErr(err)
 	cronjobs := getCronjobsMap()
@@ -178,6 +163,9 @@ func readCronjob(name string) string {
 	checkErr(err)
 	for rows.Next() {
 		err = rows.Scan(&count)
+		if count == 0 {
+			resultStr = "please verify if your cronjobName: " + name + " is exist"
+		}
 		var cronjobName sql.NullString
 		var cronjobCmd sql.NullString
 		var freq sql.NullString
@@ -191,9 +179,7 @@ func readCronjob(name string) string {
 		}
 
 	}
-	if count == 0 {
-		resultStr = "please verify if your cronjobName: " + name + " is exist"
-	}
+
 	rows.Close()
 	return resultStr
 
@@ -231,13 +217,14 @@ func deleteCronjob(name string) string {
 
 }
 func main() {
-	/*
-		cmd := exec.Command("crontab", "-e")
-		_, err := cmd.Output()
-		checkErr(err)*/
+
 	flag.Parse()
 	fmt.Println(apiserverDomain)
+	fmt.Println("20200221_0525pm")
 	e := echo.New()
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, World!")
+	})
 	e.GET("/sync", func(c echo.Context) error {
 		syncCrontab()
 
@@ -277,6 +264,6 @@ func main() {
 		resultStr := deleteCronjob(name)
 		return c.String(http.StatusOK, resultStr)
 	})
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(":3143"))
 
 }

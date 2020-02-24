@@ -465,6 +465,57 @@ func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 	}
 	return siteIdToName
 }
+func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string][]string) {
+	//siteIds include expired and unexpired!
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	var siteId string
+	var profileId string
+
+	siteToP := make(map[string]string)
+	//pToOrders := make(map[string][]string)
+	siteToBOrders := make(map[string][]string)
+	siteToFOrders := make(map[string][]string)
+
+	cmd := "SELECT siteId,profileId FROM cubs.site WHERE siteId = "
+	for i := 0; i < len(siteIds); i++ {
+		//fmt.Println(cmd + siteIds[i] + ";")
+		row := db.QueryRow(cmd + siteIds[i] + ";")
+
+		err = row.Scan(&siteId, &profileId)
+		siteToP[siteId] = profileId
+		//checkTableS(siteToP)
+	}
+
+	for key, value := range siteToP {
+		cmd = "SELECT orderId,policyId FROM cubs.profile_policy_rule WHERE ruleType='profile' && policyId="
+		cmd2 := "SELECT orderId,firewallId FROM cubs.profile_firewall_rule  WHERE ruleType='profile' && firewallId="
+		cmd = cmd + value + ";"
+
+		rows, _ := db.Query(cmd)
+		for rows.Next() {
+			var orderId string
+			var policyId string
+			if err := rows.Scan(&orderId, &policyId); err != nil {
+				checkErr(err)
+			}
+			siteToBOrders[key] = append(siteToBOrders[key], orderId)
+		}
+
+		cmd2 = cmd2 + value + ";"
+		rows2, _ := db.Query(cmd2)
+		for rows2.Next() {
+			var orderId string
+			var firewallId string
+			if err := rows2.Scan(&orderId, &firewallId); err != nil {
+				checkErr(err)
+			}
+			siteToFOrders[key] = append(siteToFOrders[key], orderId)
+		}
+	}
+	return siteToBOrders, siteToFOrders
+}
+
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -489,12 +540,20 @@ func main() {
 	//fmt.Println("args4:",os.Args[4])
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
-	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
+	checkTableS(siteNameToSnMap)
+	checkTableS(siteNameToSiteIdMap)
+	checkTableS(snToSiteId)
+	/*
+		siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
 
-	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
-	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
-	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
-	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
+		BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
+		FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
+		siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
+		siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
+		checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
+	*/
+	siteToB, siteToF := getSiteIdToOrderedIdMaps(siteIds)
+	checkTable(siteToB)
+	checkTable(siteToF)
 	//checkTableS(siteIdName)
 }
