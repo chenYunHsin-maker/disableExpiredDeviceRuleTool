@@ -364,14 +364,16 @@ func putToApiserver(targetUrl string, siteId string) {
 
 	oldSpec := gjson.Get(str, "spec")
 	var newSpec string
-	fmt.Println("spec: ", val.String())
+	fmt.Println("spec: ", oldSpec.String())
 	switch strings.Contains(targetUrl, "businesspolicy") {
 	case true:
 		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
 	case false:
 		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
 	}
-	str = strings.Replace(str, oldSpec, newSpec)
+	str = strings.Replace(str, oldSpec.String(), newSpec, 1)
+	fmt.Println(str)
+	fmt.Println()
 	putRequest(targetUrl, strings.NewReader(str))
 }
 func sliceToString(s []string) string {
