@@ -16,6 +16,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	_ "github.com/syhlion/sqlwrapper"
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -34,6 +35,8 @@ const (
 )
 
 var (
+	siteToB         = make(map[string][]string)
+	siteToF         = make(map[string][]string)
 	dbName          = dbName_default
 	mysqlDomain     = mysqlDomain_default
 	apiserverDomain = apiserverDomain_default
@@ -118,6 +121,24 @@ func getApiserverBody(apiserverDomain, siteUrl string) string {
 	s := string(body)
 	//fmt.Println(s)
 	return s
+}
+func getSpecStr(bName string) string {
+	var body string
+	switch bName[0:1] {
+	case "b":
+		//fmt.Println("case b")
+		fmt.Println(apiserverDomain, buisnessPolicyUrl+bName)
+		body = getApiserverBody(apiserverDomain, buisnessPolicyUrl+bName)
+
+	case "f":
+		//fmt.Println("case f")
+		fmt.Println(apiserverDomain, firewallPolicyUrl+bName)
+		body = getApiserverBody(apiserverDomain, firewallPolicyUrl+bName)
+	}
+	//fmt.Println("body:", body)
+	val := gjson.Get(body, "spec")
+	fmt.Println("spec: ", val)
+	return val.String()
 }
 func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (map[string]string, map[string]string, map[string]string, []string) {
 	apiServerMap := make(map[string]string)
@@ -325,21 +346,45 @@ func updateMysqlEnableStatement(command string, idArr []string) {
 		db.Exec(command)
 	}
 }
-func updateApiserver(beName, fBname string) {
+func updateApiserver(beName, fBname string, siteId string) {
 	targetUrl := apiserverDomain + buisnessPolicyUrl + beName
 	targetUrlF := apiserverDomain + firewallPolicyUrl + fBname
-	putToApiserver(targetUrl)
-	putToApiserver(targetUrlF)
+	putToApiserver(targetUrl, siteId)
+	putToApiserver(targetUrlF, siteId)
 }
-func putToApiserver(targetUrl string) {
+func putToApiserver(targetUrl string, siteId string) {
 	resp, err := http.Get(targetUrl)
 	checkErr(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	checkErr(err)
+
 	str := string(body[:])
 	str = updateJson(str)
+
+	oldSpec := gjson.Get(str, "spec")
+	var newSpec string
+	fmt.Println("spec: ", val.String())
+	switch strings.Contains(targetUrl, "businesspolicy") {
+	case true:
+		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
+	case false:
+		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
+	}
+	str = strings.Replace(str, oldSpec, newSpec)
 	putRequest(targetUrl, strings.NewReader(str))
+}
+func sliceToString(s []string) string {
+	str := "["
+	for i := 0; i < len(s); i++ {
+		if i != len(s)-1 {
+			str += s[i] + ","
+		} else {
+			str += s[i] + "]"
+		}
+
+	}
+	return str
 }
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
 	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,will disable %d business rules %d firewall rules\n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat), len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
@@ -369,7 +414,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				generateLog(this_sn, this_site_id, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName, today, expired_date)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
-				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0])
+				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
 				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
@@ -515,7 +560,17 @@ func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string
 	}
 	return siteToBOrders, siteToFOrders
 }
+func tmpF(m1 map[string][]string, m2 map[string][]string) {
+	for key, _ := range m1 {
+		//fmt.Println(key, " ", m2[key])
+		if m2[key] != nil {
+			fmt.Println("spec: ", getSpecStr(m2[key][0]))
+		} else {
+			fmt.Println("nil:", m2[key])
+		}
 
+	}
+}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -538,6 +593,7 @@ func main() {
 	fmt.Println("from date", from_date)
 	fmt.Println("to date:", to_date)
 	//fmt.Println("args4:",os.Args[4])
+
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
 	checkTableS(siteNameToSnMap)
@@ -552,8 +608,12 @@ func main() {
 	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
 
-	siteToB, siteToF := getSiteIdToOrderedIdMaps(siteIds)
-	checkTable(siteToB)
-	checkTable(siteToF)
+	siteToB, siteToF = getSiteIdToOrderedIdMaps(siteIds)
+	//checkTable(siteToB)
+	//checkTable(siteToF)
+	//tmpF(siteToB, siteIdToPolicyBName)
+	//tmpF(siteToF, siteIdToFirewallBName)
 	//checkTableS(siteIdName)
+	//getSpecStr("fw-q6f9n")
+	//getSpecStr("bp-xqsc8")
 }
