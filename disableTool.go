@@ -35,15 +35,17 @@ const (
 )
 
 var (
-	siteToB         = make(map[string][]string)
-	siteToF         = make(map[string][]string)
-	dbName          = dbName_default
-	mysqlDomain     = mysqlDomain_default
-	apiserverDomain = apiserverDomain_default
-	username        = username_default
-	password        = password_default
-	from_date       = from_date_default
-	to_date         = to_date_default
+	siteToB               = make(map[string][]string)
+	siteToF               = make(map[string][]string)
+	siteIdToPolicyBName   = make(map[string][]string)
+	siteIdToFirewallBName = make(map[string][]string)
+	dbName                = dbName_default
+	mysqlDomain           = mysqlDomain_default
+	apiserverDomain       = apiserverDomain_default
+	username              = username_default
+	password              = password_default
+	from_date             = from_date_default
+	to_date               = to_date_default
 )
 
 type Document struct {
@@ -363,18 +365,62 @@ func putToApiserver(targetUrl string, siteId string) {
 	str = updateJson(str)
 
 	oldSpec := gjson.Get(str, "spec")
-	var newSpec string
-	fmt.Println("spec: ", oldSpec.String())
+	//var newSpec string
+	part := "\"policyRules\":["
+	fmt.Println("old spec: ", oldSpec.String())
+	/**/
 	switch strings.Contains(targetUrl, "businesspolicy") {
 	case true:
-		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
-	case false:
-		newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
+		db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+		checkErr(err)
+		command := "SELECT ruleName,orderId,source,userGroup,destination,service,dscp,action FROM cubs.profile_policy_rule WHERE `policyId`="
+		rows, _ := db.Query(command + siteId + ";")
+		//part := "\"policyRules\":["
+
+		for rows.Next() {
+			var ruleName string
+			var orderId string
+			var source string
+			var userGroup string
+			var destination string
+			var service string
+			var dscp string
+			var action string
+			if err := rows.Scan(&ruleName, &orderId, &source, &userGroup, &destination, &service, &dscp, &action); err != nil {
+				fmt.Println(" err :", err)
+			}
+			ruleName = ruleName
+			fmt.Println("rulename:", ruleName)
+			fmt.Println("orderId:", orderId)
+			source = source[1 : len(source)-1]
+			fmt.Println("source:", source)
+			userGroup = userGroup[1 : len(userGroup)-1]
+			fmt.Println("userGroup:", userGroup)
+			destination = destination[1 : len(destination)-1]
+			fmt.Println("destination:", destination)
+			service = service[1:len(service)]
+			fmt.Println("service:", service)
+			dscp = dscp[1:len(dscp)]
+			fmt.Println("dscp:", dscp)
+			action = action[1:len(dscp)]
+			fmt.Println("action:", action)
+			part += "{\"ruleName:\":" + ruleName + "," + "\"orderId\":" + orderId + ",\"source\":" + source + "," + "\"userGroup\":" + userGroup + "," + "\"destination\":" + destination + ",\"service:\"" + service + ",\"dscp\":" + dscp + "},"
+			//part += "{\"ruleName:\":" + ruleName + "," + "\"orderId\":" + orderId + ",\"source\":" + source + "," + "\"userGroup\":" + userGroup + "," + "\"destination\":" + destination + ",\"service:\"" + service + ",\"dscp\":" + dscp + ",\"action\":" + action + "},"
+
+		}
+
+		part = part[0:len(part)-1] + "]"
+		//newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
+		if part != "\"policyRules\":]" {
+			fmt.Println("new new spec: ", part)
+		}
+
 	}
-	str = strings.Replace(str, oldSpec.String(), newSpec, 1)
-	fmt.Println(str)
+	str = strings.Replace(str, "\"spec\": {}", "\"spec\":{"+part+"}", 1)
+	//fmt.Println(str)
 	fmt.Println()
-	putRequest(targetUrl, strings.NewReader(str))
+
+	//putRequest(targetUrl, strings.NewReader(str))
 }
 func sliceToString(s []string) string {
 	str := "["
@@ -573,6 +619,9 @@ func tmpF(m1 map[string][]string, m2 map[string][]string) {
 
 	}
 }
+func getHowMuchSites() {
+
+}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -606,11 +655,12 @@ func main() {
 
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
-	siteIdToPolicyBName := getSiteIdToPolicyBName(snToSiteId)
-	siteIdToFirewallBName := getSiteIdToFirewallBName(snToSiteId)
-	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
-
+	siteIdToPolicyBName = getSiteIdToPolicyBName(snToSiteId)
+	siteIdToFirewallBName = getSiteIdToFirewallBName(snToSiteId)
 	siteToB, siteToF = getSiteIdToOrderedIdMaps(siteIds)
+	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
+	//checkTable(siteIdToPolicyBName)
+	//checkTable(siteIdToFirewallBName)
 	//checkTable(siteToB)
 	//checkTable(siteToF)
 	//tmpF(siteToB, siteIdToPolicyBName)
@@ -618,4 +668,5 @@ func main() {
 	//checkTableS(siteIdName)
 	//getSpecStr("fw-q6f9n")
 	//getSpecStr("bp-xqsc8")
+
 }
