@@ -225,7 +225,7 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key] + " AND ruleType='site'"
-		fmt.Println(command)
+		//fmt.Println(command)
 		rows, _ := db.Query(command)
 
 		for rows.Next() {
@@ -253,7 +253,7 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 	siteIdToFirewallNamesMap := make(map[string][]string)
 	for key, _ := range snToSiteid {
 		command := command_part + snToSiteid[key]
-		fmt.Println(command)
+		//fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
@@ -277,7 +277,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 	var beName sql.NullString
 	for key, _ := range snToSite {
 		command := command_part + snToSite[key]
-		fmt.Println(command)
+		//fmt.Println(command)
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
@@ -311,35 +311,7 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 	}
 	return siteIdToFirewallBName
 }
-func initDb() {
 
-	fmt.Println("input mysql domain: ")
-	fmt.Scanf("%s", &mysqlDomain)
-	if mysqlDomain == "" {
-		mysqlDomain = mysqlDomain_default
-	}
-	fmt.Println("input mysql username:")
-	fmt.Scanf("%s", &username)
-	fmt.Println("input mysql password:")
-	fmt.Scanf("%s", &password)
-	fmt.Println("input apiserver domain")
-	fmt.Scanf("%s", &apiserverDomain)
-	fmt.Println("watch license from date(format: 2020-02-12)")
-	fmt.Scanf("%s", &from_date)
-	fmt.Println("watch license to date(format: 2020-02-12)")
-	fmt.Scanf("%s", &to_date)
-	if apiserverDomain == "" {
-		apiserverDomain = apiserverDomain_default
-	}
-	if username == "" {
-		username = username_default
-	}
-	if password == "" {
-		password = password_default
-	}
-
-	fmt.Println("mysql login in db:", dbName)
-}
 func updateMysqlEnableStatement(command string, idArr []string) {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName)
 	checkErr(err)
@@ -364,63 +336,17 @@ func putToApiserver(targetUrl string, siteId string) {
 	str := string(body[:])
 	str = updateJson(str)
 
-	oldSpec := gjson.Get(str, "spec")
-	//var newSpec string
-	part := "\"policyRules\":["
-	fmt.Println("old spec: ", oldSpec.String())
-	/**/
-	switch strings.Contains(targetUrl, "businesspolicy") {
-	case true:
-		db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
-		checkErr(err)
-		command := "SELECT ruleName,orderId,source,userGroup,destination,service,dscp,action FROM cubs.profile_policy_rule WHERE `policyId`="
-		rows, _ := db.Query(command + siteId + ";")
-		//part := "\"policyRules\":["
-
-		for rows.Next() {
-			var ruleName string
-			var orderId string
-			var source string
-			var userGroup string
-			var destination string
-			var service string
-			var dscp string
-			var action string
-			if err := rows.Scan(&ruleName, &orderId, &source, &userGroup, &destination, &service, &dscp, &action); err != nil {
-				fmt.Println(" err :", err)
-			}
-			ruleName = ruleName
-			fmt.Println("rulename:", ruleName)
-			fmt.Println("orderId:", orderId)
-			source = source[1 : len(source)-1]
-			fmt.Println("source:", source)
-			userGroup = userGroup[1 : len(userGroup)-1]
-			fmt.Println("userGroup:", userGroup)
-			destination = destination[1 : len(destination)-1]
-			fmt.Println("destination:", destination)
-			service = service[1:len(service)]
-			fmt.Println("service:", service)
-			dscp = dscp[1:len(dscp)]
-			fmt.Println("dscp:", dscp)
-			action = action[1:len(dscp)]
-			fmt.Println("action:", action)
-			part += "{\"ruleName:\":" + ruleName + "," + "\"orderId\":" + orderId + ",\"source\":" + source + "," + "\"userGroup\":" + userGroup + "," + "\"destination\":" + destination + ",\"service:\"" + service + ",\"dscp\":" + dscp + "},"
-			//part += "{\"ruleName:\":" + ruleName + "," + "\"orderId\":" + orderId + ",\"source\":" + source + "," + "\"userGroup\":" + userGroup + "," + "\"destination\":" + destination + ",\"service:\"" + service + ",\"dscp\":" + dscp + ",\"action\":" + action + "},"
-
-		}
-
-		part = part[0:len(part)-1] + "]"
-		//newSpec = "{" + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
-		if part != "\"policyRules\":]" {
-			fmt.Println("new new spec: ", part)
-		}
-
-	}
-	str = strings.Replace(str, "\"spec\": {}", "\"spec\":{"+part+"}", 1)
-	//fmt.Println(str)
-	fmt.Println()
-
+	//oldSpec := gjson.Get(str, "spec")
+	//fmt.Println(oldSpec.String())
 	//putRequest(targetUrl, strings.NewReader(str))
+	//var newSpec string
+	/*
+		str = strings.Replace(str, oldSpec.String(), "\"spec\":{"+part+"}", 1)
+		//fmt.Println(str)
+		fmt.Println()
+
+		putRequest(targetUrl, strings.NewReader(str))
+	*/
 }
 func sliceToString(s []string) string {
 	str := "["
@@ -430,9 +356,26 @@ func sliceToString(s []string) string {
 		} else {
 			str += s[i] + "]"
 		}
-
 	}
 	return str
+}
+func checkSdwanFunctionForFirewall(bName string) bool {
+	body := getApiserverBody(apiserverDomain, firewallPolicyUrl+bName)
+	fmt.Println(apiserverDomain, firewallPolicyUrl, bName)
+	//action_isAllow := gjson.Get(body, "spec.firewallRules.1.action.isAllow")
+	action := gjson.Get(body, "spec.firewallRules")
+	fmt.Println(action.String())
+	fmt.Println(" len:", len(action.Array()))
+	return true
+}
+func checkSdwanFunctionForBusiness(bName string) bool {
+	body := getApiserverBody(apiserverDomain, buisnessPolicyUrl+bName)
+	fmt.Println(apiserverDomain, buisnessPolicyUrl, bName)
+	//action_isAllow := gjson.Get(body, "spec.firewallRules.1.action.isAllow")
+	action := gjson.Get(body, "spec.policyRules")
+	fmt.Println(action.String())
+	fmt.Println("len:", len(action.Array()))
+	return true
 }
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
 	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,will disable %d business rules %d firewall rules\n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat), len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
@@ -460,22 +403,92 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				idMap := policyIdToIdMap[this_site_id]
 				fIdMap := FpolicyIdToIdMap[this_site_id]
 				generateLog(this_sn, this_site_id, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName, today, expired_date)
+				//checkSdwanFunctionForBusiness(siteIdToPolicyBName[this_site_id][0])
+				//checkSdwanFunctionForFirewall(siteIdToFirewallBName[this_site_id][0])
+				idMap = checkMysqlSdwanBusiness(idMap)
+				fmt.Println("sdWAN FUNC B:", idMap)
+				fIdMap = checkMysqlSdwanFirewall(fIdMap)
+				fmt.Println("sdwan func f:", fIdMap)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
-				fmt.Printf("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
-				fmt.Printf("change enabled to False. \n")
-				fmt.Println("beName: ", siteIdToPolicyBName[this_site_id])
-				fmt.Println("fire bName: ", siteIdToFirewallBName[this_site_id])
-				fmt.Println("policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
+
+				fmt.Println("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
+				fmt.Println("change enabled to False. \n")
+				fmt.Println("site id:", string(this_site_id))
+
+				//fmt.Println("site name:", getMysqlSiteIdToSiteNameMap)
+				fmt.Println(" this site rule custom names:", siteIdToBusinessNamesMap[this_site_id])
+				fmt.Println(" beName: ", siteIdToPolicyBName[this_site_id])
+				fmt.Println(" fire bName: ", siteIdToFirewallBName[this_site_id])
+				fmt.Println(" policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
 
 			}
 		}
 	}
 }
+func checkMysqlSdwanBusiness(m []string) []string {
+	var newArr []string
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	for i := 0; i < len(m); i++ {
+		var id string
+		var action string
+		var source string
+		var destination string
+		var service string
 
+		command := "SELECT id,action,source,service,destination FROM cubs.profile_policy_rule WHERE id=" + m[i] + ";"
+		row := db.QueryRow(command)
+		err = row.Scan(&id, &action, &source, &service, &destination)
+		fmt.Println("service:", destination)
+		if gjson.Get(action, "networkService.pathSelectClassParams").Bool() {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(action, "networkService.aggregation").Bool() {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(action, "networkService.forwardErrorCorrect").Bool() {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(service, "serviceType").String() == "appGroup" {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrtype").String() == "country" {
+			newArr = append(newArr, string(i))
+		}
+	}
+	return newArr
+}
+func checkMysqlSdwanFirewall(m []string) []string {
+	var newArr []string
+	var id string
+	var action string
+	var source string
+	var destination string
+	for i := 0; i < len(m); i++ {
+		db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+		checkErr(err)
+		command := "SELECT id,action,source,destination FROM cubs.profile_firewall_rule WHERE id=" + m[i] + ";"
+		row := db.QueryRow(command)
+		err = row.Scan(&id, &action, &source, &destination)
+		fmt.Println("tag:", gjson.Get(action, "customBlockSites.length").String())
+		if gjson.Get(action, "isAllow").Bool() {
+			if gjson.Get(action, "blockAppGroup.id").Exists() {
+				newArr = append(newArr, string(i))
+			} else if gjson.Get(action, "customBlockSites.length").Int() > 0 {
+				newArr = append(newArr, string(i))
+			} else if gjson.Get(action, "selectedBlockPages.length").Int() > 0 {
+				newArr = append(newArr, string(i))
+			}
+		} else if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+			newArr = append(newArr, string(i))
+		} else if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrType").String() == "country" {
+			newArr = append(newArr, string(i))
+		}
+	}
+	return newArr
+}
 func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
@@ -537,7 +550,7 @@ func pushLogToMysql(siteId string, siteName string, ruleType string, rules []str
 		newValue,
 	)
 	checkErr(err)
-	fmt.Println("pushLog:", userName, userId, siteId, siteName, modulePage, feature, requestDesc)
+	//fmt.Println("pushLog:", userName, userId, siteId, siteName, modulePage, feature, requestDesc)
 }
 func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
@@ -608,20 +621,7 @@ func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string
 	}
 	return siteToBOrders, siteToFOrders
 }
-func tmpF(m1 map[string][]string, m2 map[string][]string) {
-	for key, _ := range m1 {
-		//fmt.Println(key, " ", m2[key])
-		if m2[key] != nil {
-			fmt.Println("spec: ", getSpecStr(m2[key][0]))
-		} else {
-			fmt.Println("nil:", m2[key])
-		}
 
-	}
-}
-func getHowMuchSites() {
-
-}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -646,13 +646,11 @@ func main() {
 	//fmt.Println("args4:",os.Args[4])
 
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
+
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
-	checkTableS(siteNameToSnMap)
-	checkTableS(siteNameToSiteIdMap)
-	checkTableS(snToSiteId)
 
 	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
-
+	//checkTableS(siteIdName)
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	siteIdToPolicyBName = getSiteIdToPolicyBName(snToSiteId)
