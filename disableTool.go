@@ -321,20 +321,92 @@ func updateMysqlEnableStatement(command string, idArr []string) {
 	}
 }
 func updateApiserver(beName, fBname string, siteId string) {
-	targetUrl := apiserverDomain + buisnessPolicyUrl + beName
-	targetUrlF := apiserverDomain + firewallPolicyUrl + fBname
-	putToApiserver(targetUrl, siteId)
-	putToApiserver(targetUrlF, siteId)
+	targetUrl := buisnessPolicyUrl + beName
+	targetUrlF := firewallPolicyUrl + fBname
+	needClosedIdB := checkSdwanBusinessApi(targetUrl)
+	needClosedIdF := checkSdwanFirewallApi(targetUrlF)
+	//putToApiserver(targetUrl, siteId)
+	//putToApiserver(targetUrlF, siteId)
+}
+func replaceNth(s string, n int) string {
+	old := "\"enable\":\"true\""
+	new := "\"enable\":\"false\""
+	i := 0
+	for m := 1; m <= n; m++ {
+		x := strings.Index(s[i:], old)
+		if x < 0 {
+			break
+		}
+		i += x
+		if m == n {
+			return s[:i] + new + s[i+len(old):]
+		}
+		i += len(old)
+	}
+	return s
+}
+func checkSdwanBusinessApi(url string) []int {
+	body := getApiserverBody(apiserverDomain, url)
+	ruleMap := gjson.Get(body, "spec.policyRules").Array()
+
+	var needClosedIdB []int
+	for i := 0; i < len(ruleMap); i++ {
+		targetStr := ruleMap[i].String()
+		if gjson.Get(targetStr, "action.networkService.pathSelectClassParams").Bool() {
+			needClosedIdB = append(needClosedIdB, i)
+
+		} else if gjson.Get(targetStr, "action.networkService.aggregation").Bool() {
+			needClosedIdB = append(needClosedIdB, i)
+		} else if gjson.Get(ruleMap[i].String(), "action.networkService.forwardErrorCorrect").Bool() {
+			needClosedIdB = append(needClosedIdB, i)
+		} else if gjson.Get(targetStr, "service.serviceType").String() == "appGroup" {
+			needClosedIdB = append(needClosedIdB, i)
+		} else if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "source.customAddrType").String() == "country" {
+			needClosedIdB = append(needClosedIdB, i)
+		} else if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "destination.customAddrType").String() == "country" {
+			needClosedIdB = append(needClosedIdB, i)
+		}
+
+		//fmt.Println("b rule:", ruleMap[i])
+	}
+	return needClosedIdB
+}
+func checkSdwanFirewallApi(url string) []int {
+	body := getApiserverBody(apiserverDomain, url)
+	ruleMap := gjson.Get(body, "spec.firewallRules").Array()
+	var needClosedIdF []int
+	for i := 0; i < len(ruleMap); i++ {
+		targetStr := ruleMap[i].String()
+		if gjson.Get(targetStr, "action.isAllow").Bool() {
+			if gjson.Get(targetStr, "action.blockAppGroup.id").Exists() {
+				needClosedIdF = append(needClosedIdF, i)
+			} else if gjson.Get(targetStr, "action.customBlockSites.length").Int() > 0 {
+				needClosedIdF = append(needClosedIdF, i)
+			} else if gjson.Get(targetStr, "selectedBlockPages.length").Int() > 0 {
+				needClosedIdF = append(needClosedIdF, i)
+			}
+		} else if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(targetStr, "source.customAddrType").String() == "country" {
+			needClosedIdF = append(needClosedIdF, i)
+		} else if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(targetStr, destination.customAddrType).String() == "country" {
+			needClosedIdF = append(needClosedIdF, i)
+		}
+	}
+	return needClosedIdF
 }
 func putToApiserver(targetUrl string, siteId string) {
 	resp, err := http.Get(targetUrl)
 	checkErr(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	checkErr(err)
-
 	str := string(body[:])
-	str = updateJson(str)
+	checkErr(err)
+	ruleMap := gjson.Get(str, "spec.poliyRules").Array()
+	for i := 0; i < len(ruleMap); i++ {
+		fmt.Println("rule:", ruleMap[i])
+	}
+
+	//
+	//str = updateJson(str)
 
 	//oldSpec := gjson.Get(str, "spec")
 	//fmt.Println(oldSpec.String())
@@ -359,24 +431,7 @@ func sliceToString(s []string) string {
 	}
 	return str
 }
-func checkSdwanFunctionForFirewall(bName string) bool {
-	body := getApiserverBody(apiserverDomain, firewallPolicyUrl+bName)
-	fmt.Println(apiserverDomain, firewallPolicyUrl, bName)
-	//action_isAllow := gjson.Get(body, "spec.firewallRules.1.action.isAllow")
-	action := gjson.Get(body, "spec.firewallRules")
-	fmt.Println(action.String())
-	fmt.Println(" len:", len(action.Array()))
-	return true
-}
-func checkSdwanFunctionForBusiness(bName string) bool {
-	body := getApiserverBody(apiserverDomain, buisnessPolicyUrl+bName)
-	fmt.Println(apiserverDomain, buisnessPolicyUrl, bName)
-	//action_isAllow := gjson.Get(body, "spec.firewallRules.1.action.isAllow")
-	action := gjson.Get(body, "spec.policyRules")
-	fmt.Println(action.String())
-	fmt.Println("len:", len(action.Array()))
-	return true
-}
+
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
 	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,will disable %d business rules %d firewall rules\n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat), len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
 	for i := 0; i < len(siteIdToBusinessNamesMap[this_site_id]); i++ {
@@ -406,24 +461,24 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				//checkSdwanFunctionForBusiness(siteIdToPolicyBName[this_site_id][0])
 				//checkSdwanFunctionForFirewall(siteIdToFirewallBName[this_site_id][0])
 				idMap = checkMysqlSdwanBusiness(idMap)
-				fmt.Println("sdWAN FUNC B:", idMap)
+				//fmt.Println("sdWAN FUNC B:", idMap)
 				fIdMap = checkMysqlSdwanFirewall(fIdMap)
-				fmt.Println("sdwan func f:", fIdMap)
+				//fmt.Println("sdwan func f:", fIdMap)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
 
-				fmt.Println("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
-				fmt.Println("change enabled to False. \n")
-				fmt.Println("site id:", string(this_site_id))
+				//fmt.Println("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
+				//fmt.Println("change enabled to False. \n")
+				//fmt.Println("site id:", string(this_site_id))
 
 				//fmt.Println("site name:", getMysqlSiteIdToSiteNameMap)
-				fmt.Println(" this site rule custom names:", siteIdToBusinessNamesMap[this_site_id])
-				fmt.Println(" beName: ", siteIdToPolicyBName[this_site_id])
-				fmt.Println(" fire bName: ", siteIdToFirewallBName[this_site_id])
-				fmt.Println(" policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
+				//fmt.Println(" this site rule custom names:", siteIdToBusinessNamesMap[this_site_id])
+				//fmt.Println(" beName: ", siteIdToPolicyBName[this_site_id])
+				//fmt.Println(" fire bName: ", siteIdToFirewallBName[this_site_id])
+				//fmt.Println(" policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
 
 			}
 		}
