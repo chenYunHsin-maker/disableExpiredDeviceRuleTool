@@ -3,7 +3,10 @@ import(
 	"fmt"
 	"strings"
 )
-func replaceNth(s, old, new string, n int) string {
+func replaceNth(s string, n int) string {
+	//"enabled":true
+	old := "mao:true"
+	new := "mao:false"
 	i := 0
 	for m := 1; m <= n; m++ {
 		x := strings.Index(s[i:], old)
@@ -19,6 +22,9 @@ func replaceNth(s, old, new string, n int) string {
 	return s
 }
 func main(){
-	str:="{[\"enable\":\"true\",\"enable\":\"true\"]}"
-	fmt.Println(replaceNth(str,"\"enable\":\"true\"","\"enable\":\"false\"",2))
+	s:="mao:true,mao:true,mao:true"
+	s = replaceNth(s,3)
+	s = replaceNth(s,2)
+	s = replaceNth(s,1)
+	fmt.Println(s)
 }

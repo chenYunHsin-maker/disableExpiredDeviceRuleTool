@@ -325,24 +325,26 @@ func updateApiserver(beName, fBname string, siteId string) {
 	targetUrlF := firewallPolicyUrl + fBname
 	needClosedIdB := checkSdwanBusinessApi(targetUrl)
 	needClosedIdF := checkSdwanFirewallApi(targetUrlF)
-	//putToApiserver(targetUrl, siteId)
-	//putToApiserver(targetUrlF, siteId)
+	fmt.Println("order id B api:", needClosedIdB)
+	fmt.Println("order id F api:", needClosedIdF)
+	putToApiserver(apiserverDomain+targetUrl, siteId, needClosedIdB)
+	putToApiserver(apiserverDomain+targetUrlF, siteId, needClosedIdF)
 }
 func replaceNth(s string, n int) string {
-	old := "\"enable\":\"true\""
-	new := "\"enable\":\"false\""
-	i := 0
-	for m := 1; m <= n; m++ {
-		x := strings.Index(s[i:], old)
-		if x < 0 {
-			break
-		}
-		i += x
-		if m == n {
-			return s[:i] + new + s[i+len(old):]
-		}
-		i += len(old)
+	//"enabled":true
+
+	old := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":true"
+	new := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":false"
+	old2 := "\"orderId\":" + strconv.Itoa(n)
+	new2 := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":false"
+	if strings.Index(s, old) != -1 {
+		s = strings.Replace(s, old, new, 1)
+		fmt.Println("kind1")
+	} else {
+		s = strings.Replace(s, old2, new2, 1)
+		fmt.Println("kind2")
 	}
+	fmt.Println("new:", s)
 	return s
 }
 func checkSdwanBusinessApi(url string) []int {
@@ -352,73 +354,89 @@ func checkSdwanBusinessApi(url string) []int {
 	var needClosedIdB []int
 	for i := 0; i < len(ruleMap); i++ {
 		targetStr := ruleMap[i].String()
+		isSdwan := false
 		if gjson.Get(targetStr, "action.networkService.pathSelectClassParams").Bool() {
-			needClosedIdB = append(needClosedIdB, i)
-
-		} else if gjson.Get(targetStr, "action.networkService.aggregation").Bool() {
-			needClosedIdB = append(needClosedIdB, i)
-		} else if gjson.Get(ruleMap[i].String(), "action.networkService.forwardErrorCorrect").Bool() {
-			needClosedIdB = append(needClosedIdB, i)
-		} else if gjson.Get(targetStr, "service.serviceType").String() == "appGroup" {
-			needClosedIdB = append(needClosedIdB, i)
-		} else if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "source.customAddrType").String() == "country" {
-			needClosedIdB = append(needClosedIdB, i)
-		} else if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "destination.customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if gjson.Get(targetStr, "action.networkService.aggregation").Bool() {
+			isSdwan = true
+		}
+		if gjson.Get(ruleMap[i].String(), "action.networkService.forwardErrorCorrect").Bool() {
+			isSdwan = true
+		}
+		if gjson.Get(targetStr, "service.serviceType").String() == "appGroup" {
+			isSdwan = true
+		}
+		if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "source.customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(ruleMap[i].String(), "destination.customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if isSdwan {
 			needClosedIdB = append(needClosedIdB, i)
 		}
-
-		//fmt.Println("b rule:", ruleMap[i])
+		//fmt.Println("this bname need close db:", needClosedIdB, url)
+		//fmt.Println("debug selecttype:", gjson.Get(targetStr, "source.selectType").String(), gjson.Get(ruleMap[i].String(), "source.customAddrType").String())
 	}
 	return needClosedIdB
 }
+
 func checkSdwanFirewallApi(url string) []int {
 	body := getApiserverBody(apiserverDomain, url)
 	ruleMap := gjson.Get(body, "spec.firewallRules").Array()
+	//fmt.Println(gjson.Get(targetStr, "source.selectType").String())
 	var needClosedIdF []int
 	for i := 0; i < len(ruleMap); i++ {
 		targetStr := ruleMap[i].String()
+		isSdwan := false
+		//fmt.Println(gjson.Get(targetStr, "source.selectType").String(), gjson.Get(targetStr, "source.customAddrType").String())
 		if gjson.Get(targetStr, "action.isAllow").Bool() {
+			//fmt.Println("MAOMAO1", url)
 			if gjson.Get(targetStr, "action.blockAppGroup.id").Exists() {
-				needClosedIdF = append(needClosedIdF, i)
-			} else if gjson.Get(targetStr, "action.customBlockSites.length").Int() > 0 {
-				needClosedIdF = append(needClosedIdF, i)
-			} else if gjson.Get(targetStr, "selectedBlockPages.length").Int() > 0 {
-				needClosedIdF = append(needClosedIdF, i)
+				isSdwan = true
 			}
-		} else if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(targetStr, "source.customAddrType").String() == "country" {
-			needClosedIdF = append(needClosedIdF, i)
-		} else if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(targetStr, destination.customAddrType).String() == "country" {
+			if gjson.Get(targetStr, "action.customBlockSites.length").Int() > 0 {
+				isSdwan = true
+			}
+			if gjson.Get(targetStr, "selectedBlockPages.length").Int() > 0 {
+				isSdwan = true
+			}
+		}
+		if gjson.Get(targetStr, "source.selectType").String() == "custom" && gjson.Get(targetStr, "source.customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if gjson.Get(targetStr, "destination.selectType").String() == "custom" && gjson.Get(targetStr, "destination.customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if isSdwan {
 			needClosedIdF = append(needClosedIdF, i)
 		}
 	}
 	return needClosedIdF
 }
-func putToApiserver(targetUrl string, siteId string) {
+func putToApiserver(targetUrl string, siteId string, orderId []int) {
+	//fmt.Println("update:", targetUrl, "orderId:", orderId)
 	resp, err := http.Get(targetUrl)
 	checkErr(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	str := string(body[:])
+	fmt.Println("old:", str)
 	checkErr(err)
-	ruleMap := gjson.Get(str, "spec.poliyRules").Array()
-	for i := 0; i < len(ruleMap); i++ {
-		fmt.Println("rule:", ruleMap[i])
-	}
 
-	//
-	//str = updateJson(str)
-
-	//oldSpec := gjson.Get(str, "spec")
-	//fmt.Println(oldSpec.String())
-	//putRequest(targetUrl, strings.NewReader(str))
-	//var newSpec string
-	/*
-		str = strings.Replace(str, oldSpec.String(), "\"spec\":{"+part+"}", 1)
+	for i := len(orderId) - 1; i >= 0; i-- {
+		fmt.Println("update order:", orderId[i]+1)
+		str = replaceNth(str, orderId[i]+1)
 		//fmt.Println(str)
-		fmt.Println()
+	}
+	str = addOrderIds(str)
+	//fmt.Println("new string:", str)
+	putRequest(targetUrl, strings.NewReader(str))
 
-		putRequest(targetUrl, strings.NewReader(str))
-	*/
+}
+func addOrderIds(s string) string {
+	oldSpec := gjson.Get(s, "spec").String()
 }
 func sliceToString(s []string) string {
 	str := "["
@@ -461,9 +479,9 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				//checkSdwanFunctionForBusiness(siteIdToPolicyBName[this_site_id][0])
 				//checkSdwanFunctionForFirewall(siteIdToFirewallBName[this_site_id][0])
 				idMap = checkMysqlSdwanBusiness(idMap)
-				//fmt.Println("sdWAN FUNC B:", idMap)
+				fmt.Println("sdWAN FUNC B:", idMap)
 				fIdMap = checkMysqlSdwanFirewall(fIdMap)
-				//fmt.Println("sdwan func f:", fIdMap)
+				fmt.Println("sdwan func f:", fIdMap)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
@@ -494,23 +512,34 @@ func checkMysqlSdwanBusiness(m []string) []string {
 		var source string
 		var destination string
 		var service string
-
+		isSdwan := false
 		command := "SELECT id,action,source,service,destination FROM cubs.profile_policy_rule WHERE id=" + m[i] + ";"
 		row := db.QueryRow(command)
 		err = row.Scan(&id, &action, &source, &service, &destination)
-		fmt.Println("service:", destination)
+		//fmt.Println("service:", destination)
 		if gjson.Get(action, "networkService.pathSelectClassParams").Bool() {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(action, "networkService.aggregation").Bool() {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(action, "networkService.forwardErrorCorrect").Bool() {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(service, "serviceType").String() == "appGroup" {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrtype").String() == "country" {
-			newArr = append(newArr, string(i))
+			isSdwan = true
+		}
+		if gjson.Get(action, "networkService.aggregation").Bool() {
+			isSdwan = true
+		}
+		if gjson.Get(action, "networkService.forwardErrorCorrect").Bool() {
+			isSdwan = true
+		}
+		if gjson.Get(service, "serviceType").String() == "appGroup" {
+			isSdwan = true
+		}
+		//fmt.Println("mysql check:", gjson.Get(source, "selectType").String(), gjson.Get(source, "customAddrType").String())
+		if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+			//fmt.Println("mysql check:", "update to true")
+			isSdwan = true
+		}
+		if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrtype").String() == "country" {
+			isSdwan = true
+		}
+		if isSdwan {
+			newArr = append(newArr, id)
+			//fmt.Println("mysql check:", newArr)
 		}
 	}
 	return newArr
@@ -527,19 +556,27 @@ func checkMysqlSdwanFirewall(m []string) []string {
 		command := "SELECT id,action,source,destination FROM cubs.profile_firewall_rule WHERE id=" + m[i] + ";"
 		row := db.QueryRow(command)
 		err = row.Scan(&id, &action, &source, &destination)
-		fmt.Println("tag:", gjson.Get(action, "customBlockSites.length").String())
+		//fmt.Println("tag:", gjson.Get(action, "customBlockSites.length").String())
+		isSdwan := false
 		if gjson.Get(action, "isAllow").Bool() {
 			if gjson.Get(action, "blockAppGroup.id").Exists() {
-				newArr = append(newArr, string(i))
-			} else if gjson.Get(action, "customBlockSites.length").Int() > 0 {
-				newArr = append(newArr, string(i))
-			} else if gjson.Get(action, "selectedBlockPages.length").Int() > 0 {
-				newArr = append(newArr, string(i))
+				isSdwan = true
 			}
-		} else if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
-			newArr = append(newArr, string(i))
-		} else if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrType").String() == "country" {
-			newArr = append(newArr, string(i))
+			if gjson.Get(action, "customBlockSites.length").Int() > 0 {
+				isSdwan = true
+			}
+			if gjson.Get(action, "selectedBlockPages.length").Int() > 0 {
+				isSdwan = true
+			}
+		}
+		if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrType").String() == "country" {
+			isSdwan = true
+		}
+		if isSdwan {
+			newArr = append(newArr, id)
 		}
 	}
 	return newArr
@@ -642,37 +679,37 @@ func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string
 	for i := 0; i < len(siteIds); i++ {
 		//fmt.Println(cmd + siteIds[i] + ";")
 		row := db.QueryRow(cmd + siteIds[i] + ";")
-
 		err = row.Scan(&siteId, &profileId)
 		siteToP[siteId] = profileId
 		//checkTableS(siteToP)
 	}
-
+	//checkSdwanBusinessApi
 	for key, value := range siteToP {
-		cmd = "SELECT orderId,policyId FROM cubs.profile_policy_rule WHERE ruleType='profile' && policyId="
-		cmd2 := "SELECT orderId,firewallId FROM cubs.profile_firewall_rule  WHERE ruleType='profile' && firewallId="
-		cmd = cmd + value + ";"
+		//cmd = "SELECT orderId,policyId FROM cubs.profile_policy_rule WHERE ruleType='profile' && policyId="
+		//cmd2 := "SELECT orderId,firewallId FROM cubs.profile_firewall_rule  WHERE ruleType='profile' && firewallId="
+		cmd3 := "SELECT beName FROM cubs.profile_policy WHERE `profileId`="
+		cmd4 := "SELECT beName FROM cubs.profile_firewall WHERE `profileId`="
+		var thisBNm string
+		var thisBNmF string
+		row := db.QueryRow(cmd3 + value + ";")
+		err := row.Scan(&thisBNm)
+		row = db.QueryRow(cmd4 + value + ";")
+		err = row.Scan(&thisBNmF)
+		checkErr(err)
+		//fmt.Println("search profile:", buisnessPolicyUrl, thisBNm)
+		disableIds := checkSdwanBusinessApi(buisnessPolicyUrl + thisBNm)
+		//fmt.Println("disabledIds:", disableIds)
+		for i := 0; i < len(disableIds); i++ {
+			siteToBOrders[key] = append(siteToBOrders[key], strconv.Itoa(disableIds[i]))
 
-		rows, _ := db.Query(cmd)
-		for rows.Next() {
-			var orderId string
-			var policyId string
-			if err := rows.Scan(&orderId, &policyId); err != nil {
-				checkErr(err)
-			}
-			siteToBOrders[key] = append(siteToBOrders[key], orderId)
+		}
+		disableIds = checkSdwanFirewallApi(firewallPolicyUrl + thisBNmF)
+		//fmt.Println("disable:", disableIds)
+		for i := 0; i < len(disableIds); i++ {
+			siteToFOrders[key] = append(siteToFOrders[key], strconv.Itoa(disableIds[i]))
+
 		}
 
-		cmd2 = cmd2 + value + ";"
-		rows2, _ := db.Query(cmd2)
-		for rows2.Next() {
-			var orderId string
-			var firewallId string
-			if err := rows2.Scan(&orderId, &firewallId); err != nil {
-				checkErr(err)
-			}
-			siteToFOrders[key] = append(siteToFOrders[key], orderId)
-		}
 	}
 	return siteToBOrders, siteToFOrders
 }
@@ -711,11 +748,12 @@ func main() {
 	siteIdToPolicyBName = getSiteIdToPolicyBName(snToSiteId)
 	siteIdToFirewallBName = getSiteIdToFirewallBName(snToSiteId)
 	siteToB, siteToF = getSiteIdToOrderedIdMaps(siteIds)
+	//siteToProBBname, siteToProFBname = getSiteIdToProfileBname()
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
 	//checkTable(siteIdToPolicyBName)
 	//checkTable(siteIdToFirewallBName)
-	//checkTable(siteToB)
-	//checkTable(siteToF)
+	checkTable(siteToB)
+	checkTable(siteToF)
 	//tmpF(siteToB, siteIdToPolicyBName)
 	//tmpF(siteToF, siteIdToFirewallBName)
 	//checkTableS(siteIdName)
