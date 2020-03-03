@@ -344,7 +344,7 @@ func replaceNth(s string, n int) string {
 		s = strings.Replace(s, old2, new2, 1)
 		fmt.Println("kind2")
 	}
-	fmt.Println("new:", s)
+	//fmt.Println("new:", s)
 	return s
 }
 func checkSdwanBusinessApi(url string) []int {
@@ -422,7 +422,7 @@ func putToApiserver(targetUrl string, siteId string, orderId []int) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	str := string(body[:])
-	fmt.Println("old:", str)
+	//fmt.Println("old:", str)
 	checkErr(err)
 
 	for i := len(orderId) - 1; i >= 0; i-- {
@@ -430,13 +430,29 @@ func putToApiserver(targetUrl string, siteId string, orderId []int) {
 		str = replaceNth(str, orderId[i]+1)
 		//fmt.Println(str)
 	}
-	str = addOrderIds(str)
+	fmt.Println("update url:", targetUrl)
+	str = addOrderIds(str, siteId)
 	//fmt.Println("new string:", str)
 	putRequest(targetUrl, strings.NewReader(str))
 
 }
-func addOrderIds(s string) string {
+func addOrderIds(s, siteId string) string {
 	oldSpec := gjson.Get(s, "spec").String()
+	newSpec := oldSpec
+	//fmt.Println("oldspec:", oldSpec)
+	if strings.Index(s, "BPRuleSet") != -1 {
+		if len(siteToB[siteId]) != 0 {
+			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
+
+		}
+	} else {
+		if len(siteToF[siteId]) != 0 {
+			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
+		}
+	}
+	fmt.Println("new:", newSpec)
+	s = strings.Replace(s, oldSpec, newSpec, 1)
+	return s
 }
 func sliceToString(s []string) string {
 	str := "["

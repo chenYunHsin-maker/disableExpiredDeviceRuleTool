@@ -22,9 +22,10 @@ func replaceNth(s string, n int) string {
 	return s
 }
 func main(){
-	s:="mao:true,mao:true,mao:true"
-	s = replaceNth(s,3)
-	s = replaceNth(s,2)
-	s = replaceNth(s,1)
-	fmt.Println(s)
+	s:="mao:FireSedmao:true,mao:true"
+	if strings.Index(s,"BPRuleSed")!= -1{
+		fmt.Println("aru")
+	}else{
+		fmt.Println("inai")
+	}
 }
