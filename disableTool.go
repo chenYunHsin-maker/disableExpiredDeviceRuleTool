@@ -328,8 +328,16 @@ func updateApiserver(beName, fBname string, siteId string) {
 	targetUrlF := firewallPolicyUrl + fBname
 	needClosedIdB := checkSdwanBusinessApi(targetUrl)
 	needClosedIdF := checkSdwanFirewallApi(targetUrlF)
-	fmt.Println("order id B api:", needClosedIdB)
-	fmt.Println("order id F api:", needClosedIdF)
+	if len(needClosedIdB) > 0 {
+		fmt.Println("update site policy:", needClosedIdB)
+	} else {
+		fmt.Println("update site policy: no change")
+	}
+	if len(needClosedIdF) > 0 {
+		fmt.Println("update site firewall:", needClosedIdF)
+	} else {
+		fmt.Println("update site firewall: no change")
+	}
 	putToApiserver(apiserverDomain+targetUrl, siteId, needClosedIdB)
 	putToApiserver(apiserverDomain+targetUrlF, siteId, needClosedIdF)
 }
@@ -343,7 +351,7 @@ func replaceNth(s string, n int) string {
 		fmt.Println("kind1")
 	} else {
 		s = strings.Replace(s, old2, new2, 1)
-		fmt.Println("kind2")
+		//fmt.Println("kind2")
 	}
 	return s
 }
@@ -422,7 +430,7 @@ func putToApiserver(targetUrl string, siteId string, orderId []int) {
 	checkErr(err)
 
 	for i := len(orderId) - 1; i >= 0; i-- {
-		fmt.Println("update order:", orderId[i]+1)
+		//fmt.Println("update order:", orderId[i]+1)
 		str = replaceNth(str, orderId[i]+1)
 	}
 	str = addOrderIds(str, siteId)
@@ -435,18 +443,29 @@ func addOrderIds(s, siteId string) string {
 	//fmt.Println("oldspec:", oldSpec)
 	if strings.Index(s, "BPRuleSet") != -1 {
 		if len(siteToB[siteId]) != 0 {
+			fmt.Println("update profile policy:", siteToB[siteId])
 			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
 
+		} else {
+			fmt.Println("update profile policy: no change")
 		}
 	} else {
 		if len(siteToF[siteId]) != 0 {
+			fmt.Println("update profile firewall:", siteToF[siteId])
 			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
+		} else {
+			fmt.Println("update profile firewall: no change")
 		}
 	}
-	fmt.Println("new:", newSpec)
+	//fmt.Println("new:", newSpec)
 	s = strings.Replace(s, oldSpec, newSpec, 1)
 	return s
 }
+
+/*
+	func:sliceToString
+	usage: transform slice to string
+*/
 func sliceToString(s []string) string {
 	str := "["
 	for i := 0; i < len(s); i++ {
@@ -459,6 +478,10 @@ func sliceToString(s []string) string {
 	return str
 }
 
+/*
+	func: generateLog
+	usage: generate crontab log
+*/
 func generateLog(this_sn, this_site_id string, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName map[string][]string, today, expired_date time.Time) {
 	glog.Infof("sn %s 's license is expired! today is %s expired_day is %s,will disable %d business rules %d firewall rules\n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat), len(siteIdToBusinessNamesMap[this_site_id]), len(siteIdToFirewallNamesMap[this_site_id]))
 	for i := 0; i < len(siteIdToBusinessNamesMap[this_site_id]); i++ {
@@ -486,11 +509,12 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				fIdMap := FpolicyIdToIdMap[this_site_id]
 				generateLog(this_sn, this_site_id, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName, today, expired_date)
 				idMap = checkMysqlSdwanBusiness(idMap)
-				fmt.Println("sdWAN FUNC B:", idMap)
+				//fmt.Println("sdWAN FUNC B:", idMap)
 				fIdMap = checkMysqlSdwanFirewall(fIdMap)
-				fmt.Println("sdwan func f:", fIdMap)
+				//fmt.Println("sdwan func f:", fIdMap)
 				updateMysqlEnableStatement(policyUpdateCmd, idMap)
 				updateMysqlEnableStatement(firewallUpdateCmd, fIdMap)
+				fmt.Println("update:", siteIdToPolicyBName[this_site_id], siteIdToFirewallBName[this_site_id])
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
@@ -500,6 +524,7 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 }
 
 /*
+	func: checkMysqlSdOnePolicy
 	input:policy ruleId
 	output: ifUseSdwan (bool)
 */
@@ -540,6 +565,7 @@ func checkMysqlSdOnePolicy(ruleId string) bool {
 }
 
 /*
+	func: checkMysqlSdOneFirewall
 	input:firewall ruleId
 	output: ifUseSdwan (bool)
 */
@@ -579,8 +605,9 @@ func checkMysqlSdOneFirewall(ruleId string) bool {
 }
 
 /*
-input: mysql profile_policy_rule id slice
-output: profile_policy_rule id which use sdwan function slice
+	func: checkMysqlSdwanBusiness
+	input: mysql profile_policy_rule id slice
+	output: profile_policy_rule id which use sdwan function slice
 */
 func checkMysqlSdwanBusiness(m []string) []string {
 	var newArr []string
@@ -626,8 +653,9 @@ func checkMysqlSdwanBusiness(m []string) []string {
 }
 
 /*
-input: mysql profile_firewall_rule id slice
-output: profile_firewall_rule id which use sdwan function slice
+	func: checkMysqlSdwanFirewall
+	input: mysql profile_firewall_rule id slice
+	output: profile_firewall_rule id which use sdwan function slice
 */
 func checkMysqlSdwanFirewall(m []string) []string {
 	var newArr []string
@@ -665,8 +693,11 @@ func checkMysqlSdwanFirewall(m []string) []string {
 		}
 	}
 	return newArr
-} /*
-output: filter from_date and to_date, return contractId, last_expired_at *sql.Roes
+}
+
+/*
+	func: getSnExpiredQuery
+	output: filter from_date and to_date, return contractId, last_expired_at *sql.Roes
 */
 func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
@@ -693,6 +724,7 @@ func getSnExpiredQuery() *sql.Rows {
 }
 
 /*
+	func: pushLogToMysql
 	input: site id,site name(gui),ruleType(policy or firewall),rules slice
 	usage: put log ro gui
 */
@@ -737,6 +769,7 @@ func pushLogToMysql(siteId string, siteName string, ruleType string, rules []str
 }
 
 /*
+func: getMysqlSiteIdToSiteNameMap
 input: site id slice
 output: site id to gui site name map
 */
@@ -761,6 +794,7 @@ func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 }
 
 /*
+func: getSiteIdToOrderedIdMaps
 input: site id slice
 output: 1)site id to policy profile order ids map(which uses sdwan function) 2)site id to firewall profile order ids map(which uses sdwan function)
 */
