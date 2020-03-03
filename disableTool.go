@@ -209,9 +209,6 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 	return snExpiredMap
 }
 func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string, map[string][]string) {
-	//policyIdToRuleTypeMap := make(map[string][]string)
-
-	//policyIdToRuleNameMap := make(map[string][]string)
 	var id sql.NullString
 	var ruleName sql.NullString
 	var ruleType sql.NullString
@@ -232,8 +229,11 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 			if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
 				fmt.Println(" err :", err)
 			}
-			siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
-			siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
+			if checkMysqlSdOnePolicy(id.String) {
+				siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
+				siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
+			}
+
 		}
 		rows.Close()
 	}
@@ -259,8 +259,11 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
 				fmt.Println(" err :", err)
 			}
-			siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
-			siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
+			if checkMysqlSdOneFirewall(id.String) {
+				siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
+				siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
+			}
+
 		}
 		rows.Close()
 
@@ -331,8 +334,6 @@ func updateApiserver(beName, fBname string, siteId string) {
 	putToApiserver(apiserverDomain+targetUrlF, siteId, needClosedIdF)
 }
 func replaceNth(s string, n int) string {
-	//"enabled":true
-
 	old := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":true"
 	new := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":false"
 	old2 := "\"orderId\":" + strconv.Itoa(n)
@@ -344,7 +345,6 @@ func replaceNth(s string, n int) string {
 		s = strings.Replace(s, old2, new2, 1)
 		fmt.Println("kind2")
 	}
-	//fmt.Println("new:", s)
 	return s
 }
 func checkSdwanBusinessApi(url string) []int {
@@ -376,8 +376,6 @@ func checkSdwanBusinessApi(url string) []int {
 		if isSdwan {
 			needClosedIdB = append(needClosedIdB, i)
 		}
-		//fmt.Println("this bname need close db:", needClosedIdB, url)
-		//fmt.Println("debug selecttype:", gjson.Get(targetStr, "source.selectType").String(), gjson.Get(ruleMap[i].String(), "source.customAddrType").String())
 	}
 	return needClosedIdB
 }
@@ -416,23 +414,18 @@ func checkSdwanFirewallApi(url string) []int {
 	return needClosedIdF
 }
 func putToApiserver(targetUrl string, siteId string, orderId []int) {
-	//fmt.Println("update:", targetUrl, "orderId:", orderId)
 	resp, err := http.Get(targetUrl)
 	checkErr(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	str := string(body[:])
-	//fmt.Println("old:", str)
 	checkErr(err)
 
 	for i := len(orderId) - 1; i >= 0; i-- {
 		fmt.Println("update order:", orderId[i]+1)
 		str = replaceNth(str, orderId[i]+1)
-		//fmt.Println(str)
 	}
-	fmt.Println("update url:", targetUrl)
 	str = addOrderIds(str, siteId)
-	//fmt.Println("new string:", str)
 	putRequest(targetUrl, strings.NewReader(str))
 
 }
@@ -492,8 +485,6 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				idMap := policyIdToIdMap[this_site_id]
 				fIdMap := FpolicyIdToIdMap[this_site_id]
 				generateLog(this_sn, this_site_id, siteIdToBusinessNamesMap, siteIdToFirewallNamesMap, siteIdToPolicyBName, siteIdToFirewallBName, today, expired_date)
-				//checkSdwanFunctionForBusiness(siteIdToPolicyBName[this_site_id][0])
-				//checkSdwanFunctionForFirewall(siteIdToFirewallBName[this_site_id][0])
 				idMap = checkMysqlSdwanBusiness(idMap)
 				fmt.Println("sdWAN FUNC B:", idMap)
 				fIdMap = checkMysqlSdwanFirewall(fIdMap)
@@ -503,21 +494,94 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 				updateApiserver(siteIdToPolicyBName[this_site_id][0], siteIdToFirewallBName[this_site_id][0], this_site_id)
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Business Policy", siteIdToBusinessNamesMap[this_site_id])
 				pushLogToMysql(this_site_id, siteIdName[this_site_id], "Firewall", siteIdToFirewallNamesMap[this_site_id])
-
-				//fmt.Println("sn %s 's license is expired! today is %s expired_day is %s \n", this_sn, today.Format(timeFormat), expired_date.Format(timeFormat))
-				//fmt.Println("change enabled to False. \n")
-				//fmt.Println("site id:", string(this_site_id))
-
-				//fmt.Println("site name:", getMysqlSiteIdToSiteNameMap)
-				//fmt.Println(" this site rule custom names:", siteIdToBusinessNamesMap[this_site_id])
-				//fmt.Println(" beName: ", siteIdToPolicyBName[this_site_id])
-				//fmt.Println(" fire bName: ", siteIdToFirewallBName[this_site_id])
-				//fmt.Println(" policy rule ids:", idMap, " firewall rule ids:", fIdMap, " site ids: ", this_site_id)
-
 			}
 		}
 	}
 }
+
+/*
+	input:policy ruleId
+	output: ifUseSdwan (bool)
+*/
+func checkMysqlSdOnePolicy(ruleId string) bool {
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	var id string
+	var action string
+	var source string
+	var destination string
+	var service string
+	isSdwan := false
+	command := "SELECT id,action,source,service,destination FROM cubs.profile_policy_rule WHERE id=" + ruleId + ";"
+	row := db.QueryRow(command)
+	err = row.Scan(&id, &action, &source, &service, &destination)
+	//fmt.Println("service:", destination)
+	if gjson.Get(action, "networkService.pathSelectClassParams").Bool() {
+		isSdwan = true
+	}
+	if gjson.Get(action, "networkService.aggregation").Bool() {
+		isSdwan = true
+	}
+	if gjson.Get(action, "networkService.forwardErrorCorrect").Bool() {
+		isSdwan = true
+	}
+	if gjson.Get(service, "serviceType").String() == "appGroup" {
+		isSdwan = true
+	}
+	//fmt.Println("mysql check:", gjson.Get(source, "selectType").String(), gjson.Get(source, "customAddrType").String())
+	if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+		//fmt.Println("mysql check:", "update to true")
+		isSdwan = true
+	}
+	if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrtype").String() == "country" {
+		isSdwan = true
+	}
+	return isSdwan
+}
+
+/*
+	input:firewall ruleId
+	output: ifUseSdwan (bool)
+*/
+func checkMysqlSdOneFirewall(ruleId string) bool {
+
+	var id string
+	var action string
+	var source string
+	var destination string
+
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	checkErr(err)
+	command := "SELECT id,action,source,destination FROM cubs.profile_firewall_rule WHERE id=" + ruleId + ";"
+	row := db.QueryRow(command)
+	err = row.Scan(&id, &action, &source, &destination)
+	//fmt.Println("tag:", gjson.Get(action, "customBlockSites.length").String())
+	isSdwan := false
+	if gjson.Get(action, "isAllow").Bool() {
+		if gjson.Get(action, "blockAppGroup.id").Exists() {
+			isSdwan = true
+		}
+		if gjson.Get(action, "customBlockSites.length").Int() > 0 {
+			isSdwan = true
+		}
+		if gjson.Get(action, "selectedBlockPages.length").Int() > 0 {
+			isSdwan = true
+		}
+	}
+	if gjson.Get(source, "selectType").String() == "custom" && gjson.Get(source, "customAddrType").String() == "country" {
+		isSdwan = true
+	}
+	if gjson.Get(destination, "selectType").String() == "custom" && gjson.Get(destination, "customAddrType").String() == "country" {
+		isSdwan = true
+	}
+
+	return isSdwan
+}
+
+/*
+input: mysql profile_policy_rule id slice
+output: profile_policy_rule id which use sdwan function slice
+*/
 func checkMysqlSdwanBusiness(m []string) []string {
 	var newArr []string
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
@@ -560,6 +624,11 @@ func checkMysqlSdwanBusiness(m []string) []string {
 	}
 	return newArr
 }
+
+/*
+input: mysql profile_firewall_rule id slice
+output: profile_firewall_rule id which use sdwan function slice
+*/
 func checkMysqlSdwanFirewall(m []string) []string {
 	var newArr []string
 	var id string
@@ -596,7 +665,9 @@ func checkMysqlSdwanFirewall(m []string) []string {
 		}
 	}
 	return newArr
-}
+} /*
+output: filter from_date and to_date, return contractId, last_expired_at *sql.Roes
+*/
 func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
@@ -621,6 +692,10 @@ func getSnExpiredQuery() *sql.Rows {
 	return rows
 }
 
+/*
+	input: site id,site name(gui),ruleType(policy or firewall),rules slice
+	usage: put log ro gui
+*/
 func pushLogToMysql(siteId string, siteName string, ruleType string, rules []string) {
 
 	userId := -1
@@ -658,8 +733,13 @@ func pushLogToMysql(siteId string, siteName string, ruleType string, rules []str
 		newValue,
 	)
 	checkErr(err)
-	//fmt.Println("pushLog:", userName, userId, siteId, siteName, modulePage, feature, requestDesc)
+
 }
+
+/*
+input: site id slice
+output: site id to gui site name map
+*/
 func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
@@ -679,6 +759,11 @@ func getMysqlSiteIdToSiteNameMap(siteIds []string) map[string]string {
 	}
 	return siteIdToName
 }
+
+/*
+input: site id slice
+output: 1)site id to policy profile order ids map(which uses sdwan function) 2)site id to firewall profile order ids map(which uses sdwan function)
+*/
 func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string][]string) {
 	//siteIds include expired and unexpired!
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
@@ -733,11 +818,6 @@ func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string
 func main() {
 	flag.Parse()
 	defer glog.Flush()
-	//initDb()
-	/*
-		for i := 0; i < len(os.Args); i++ {
-			fmt.Println("arg:", os.Args[i])
-		}*/
 	mysqlDomain = os.Args[1]
 	username = os.Args[2]
 	password = os.Args[3]
@@ -751,29 +831,18 @@ func main() {
 	fmt.Println("apiserver domain:", apiserverDomain)
 	fmt.Println("from date", from_date)
 	fmt.Println("to date:", to_date)
-	//fmt.Println("args4:",os.Args[4])
-
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
-
+	siteToB, siteToF = getSiteIdToOrderedIdMaps(siteIds)
 	siteIdName := getMysqlSiteIdToSiteNameMap(siteIds)
 	//checkTableS(siteIdName)
 	BpolicyIdToIdMap, siteIdToBusnessNamesMap := getMysqlProfilePolicyRule(snToSiteId)
 	FpolicyIdToIdMap, siteIdToFirewallNamesMap := getMysqlFirewallRule(snToSiteId)
 	siteIdToPolicyBName = getSiteIdToPolicyBName(snToSiteId)
 	siteIdToFirewallBName = getSiteIdToFirewallBName(snToSiteId)
-	siteToB, siteToF = getSiteIdToOrderedIdMaps(siteIds)
+
 	//siteToProBBname, siteToProFBname = getSiteIdToProfileBname()
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
-	//checkTable(siteIdToPolicyBName)
-	//checkTable(siteIdToFirewallBName)
-	checkTable(siteToB)
-	checkTable(siteToF)
-	//tmpF(siteToB, siteIdToPolicyBName)
-	//tmpF(siteToF, siteIdToFirewallBName)
-	//checkTableS(siteIdName)
-	//getSpecStr("fw-q6f9n")
-	//getSpecStr("bp-xqsc8")
 
 }
