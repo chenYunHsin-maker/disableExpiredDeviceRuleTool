@@ -5,12 +5,13 @@ import (
 	"flag"
 	"net/http"
 	"os/exec"
+	"strings"
 
-	"fmt"
 	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/glog"
 	"github.com/labstack/echo"
 	_ "github.com/syhlion/sqlwrapper"
 )
@@ -33,7 +34,6 @@ var (
 )
 
 type Cronjob struct {
-	//原来golang对变量是否包外可访问，是通过变量名的首字母是否大小写来决定的
 	Name string `json:"name" form:"name" query:"name"`
 	Freq string `json:"freq" form:"freq" query:"freq"`
 	Cmd  string `json:"cmd" form:"cmd" query:"cmd"`
@@ -61,7 +61,6 @@ func checkErr(err error) {
 
 func GetTaiwanTime() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
-	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
 	return t
 }
@@ -74,14 +73,11 @@ func ShortDateFromString(ds string) (time.Time, error) {
 }
 func GetTaiwanTime2() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
-	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString2(time.Now().In(loc).Format(detailTime))
-	//fmt.Println("t:", t)
 	return t
 }
 func ShortDateFromString2(ds string) (time.Time, error) {
 	t, err := time.Parse(detailTime, ds)
-	//fmt.Println("s:", t)
 	if err != nil {
 		return t, err
 	}
@@ -98,8 +94,7 @@ func getCronjobsMap() map[string]string {
 		var cronjobName sql.NullString
 		var freq sql.NullString
 		if err := rows.Scan(&cronCmd, &cronjobName, &freq); err != nil {
-			fmt.Println(" err :", err)
-
+			glog.Infoln(err.Error())
 		}
 		cronjobs[cronjobName.String] = freq.String + " " + cronCmd.String
 	}
@@ -120,7 +115,7 @@ func getCronjobList(cronjobs map[string]string) string {
 
 		switch key {
 		case "CheckLicense":
-			fmt.Println("Cronjob: Check License")
+			glog.Infoln("Cronjob: Check License")
 		}
 	}
 	return cronjobList
@@ -137,7 +132,7 @@ func syncCrontab() {
 	cmd := exec.Command("crontab", "./crontabFile.txt")
 	_, err = cmd.Output()
 	checkErr(err)
-	fmt.Println("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
+	glog.Infoln("crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
 }
 func init() {
 	flag.StringVar(&mysqlDomain, "mysqlDomain", "sdwan-orch-db-orchestrator-db:3306", "it's mysql domain")
@@ -150,12 +145,12 @@ func createCronjob(job Cronjob) {
 	cmd := "INSERT INTO cubs.crontab(cronjobName,cronCmd,freq) VALUES (?,?,?);"
 	_, err = db.Exec(cmd, job.Name, job.Cmd, job.Freq)
 	checkErr(err)
+	syncCrontab()
 }
 func readCronjob(name string) string {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
 	checkErr(err)
 	command := "SELECT cronjobName,cronCmd,freq FROM cubs.crontab WHERE cronjobName='" + name + "';"
-	fmt.Println(command)
 	rows, _ := db.Query(command)
 	var resultStr string
 	var count int64
@@ -170,35 +165,50 @@ func readCronjob(name string) string {
 		var cronjobCmd sql.NullString
 		var freq sql.NullString
 		if err := rows.Scan(&cronjobName, &cronjobCmd, &freq); err != nil {
-			fmt.Println(" err :", err)
+			glog.Infoln(err.Error())
 		}
 		if cronjobName.Valid {
 			resultStr = "cronjobName: " + cronjobName.String + " cronjobCmd:" + cronjobCmd.String + " freq:" + freq.String
-		} else {
-
 		}
-
 	}
 
 	rows.Close()
 	return resultStr
 
 }
+func createTable() {
+	dbName := "cubs"
+	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
+	stmt, err := db.Prepare("CREATE Table crontab(cronjogId int NOT NULL AUTO_INCREMENT  PRIMARY KEY, cronjobName varchar(50) NOT NULL UNIQUE, cronCmd varchar(200), freq varchar(50));")
+	if err != nil {
+		glog.Infoln(err.Error())
+	}
+	_, err = stmt.Exec()
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			glog.Infoln("Crontab table created successfully :D")
+		} else {
+			glog.Infoln(err.Error())
+		}
+	} else {
+		glog.Infoln("Crontab table created successfully :D")
+	}
+}
 func updateCronjob(job Cronjob) {
 
 	//UPDATE cubs.crontab SET `cronCmd` = './maomao',`freq`='1 * * * *'  WHERE cronjobName= 'vicky';
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
 	cmd := "UPDATE cubs.crontab SET `cronCmd` = '" + job.Cmd + "',`freq`='" + job.Freq + "' " + "WHERE cronjobName= '" + job.Name + "';"
-	fmt.Println(cmd)
+	glog.Infoln(cmd)
 	_, err = db.Exec(cmd)
 	checkErr(err)
+	syncCrontab()
 }
 func deleteCronjob(name string) string {
 	var resultStr string
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+"cubs?charset=utf8&parseTime=True")
 	checkErr(err)
 	command := "DELETE FROM cubs.crontab WHERE cronjobName='" + name + "';"
-	fmt.Println(command)
 	res, err := db.Exec(command)
 	if err == nil {
 		cnt, err := res.RowsAffected()
@@ -208,6 +218,7 @@ func deleteCronjob(name string) string {
 				resultStr = "please verify if " + name + " is exist"
 			case 1:
 				resultStr = "delete " + name + " successfully!"
+				syncCrontab()
 			}
 		}
 	}
@@ -219,21 +230,15 @@ func deleteCronjob(name string) string {
 func main() {
 
 	flag.Parse()
-	fmt.Println(apiserverDomain)
-	fmt.Println("20200221_0525pm")
+
+	//glog.Infoln()
+	createTable()
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
-	e.GET("/sync", func(c echo.Context) error {
-		syncCrontab()
-
-		return c.String(http.StatusOK, "crontab added! use \"crontab -e\" and \"grep CRON /var/log/syslog\" to check!")
-	})
 	e.POST("/createCronjob", func(c echo.Context) error {
-
 		job := new(Cronjob)
-		//fmt.Println(c.Request().Body)
 		if err := c.Bind(job); err != nil {
 			return err
 		}
@@ -243,7 +248,6 @@ func main() {
 	e.POST("/updateCronjob", func(c echo.Context) error {
 
 		job := new(Cronjob)
-		//fmt.Println(c.Request().Body)
 		if err := c.Bind(job); err != nil {
 			return err
 		}
@@ -252,15 +256,11 @@ func main() {
 	})
 	e.GET("/readCronjob/:name", func(c echo.Context) error {
 		name := c.Param("name")
-		//readCronjob(name)
-		//fmt.Println("name:", name)
 		resultStr := readCronjob(name)
 		return c.String(http.StatusOK, resultStr)
 	})
 	e.GET("/deleteCronjob/:name", func(c echo.Context) error {
 		name := c.Param("name")
-		//readCronjob(name)
-		//fmt.Println("name:", name)
 		resultStr := deleteCronjob(name)
 		return c.String(http.StatusOK, resultStr)
 	})

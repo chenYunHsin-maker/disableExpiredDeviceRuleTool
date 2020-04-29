@@ -77,12 +77,11 @@ func updateJson(str string) string {
 		i++
 		str = strings.Replace(str, "\"enabled\":true,", "\"enabled\":false,", 1)
 	}
-	fmt.Println("update ", i, "apiserver enabled fileds")
+	glog.Infoln("update ", i, "apiserver enabled fileds")
 	return str
 }
 func GetTaiwanTime() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
-	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString(time.Now().In(loc).Format(timeFormat))
 	return t
 }
@@ -95,7 +94,6 @@ func ShortDateFromString(ds string) (time.Time, error) {
 }
 func ShortDateFromString2(ds string) (time.Time, error) {
 	t, err := time.Parse(detailTime, ds)
-	//fmt.Println("s:", t)
 	if err != nil {
 		return t, err
 	}
@@ -103,9 +101,7 @@ func ShortDateFromString2(ds string) (time.Time, error) {
 }
 func GetTaiwanTime2() time.Time {
 	loc, _ := time.LoadLocation("Asia/Taipei")
-	//fmt.Println(time.Now().In(loc))
 	t, _ := ShortDateFromString2(time.Now().In(loc).Format(detailTime))
-	//fmt.Println("t:", t)
 	return t
 }
 func checkErr(err error) {
@@ -114,32 +110,26 @@ func checkErr(err error) {
 	}
 }
 func getApiserverBody(apiserverDomain, siteUrl string) string {
-	//fmt.Println("start to get body")
 	resp, err := http.Get(apiserverDomain + siteUrl)
 	checkErr(err)
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	s := string(body)
-	//fmt.Println(s)
 	return s
 }
 func getSpecStr(bName string) string {
 	var body string
 	switch bName[0:1] {
 	case "b":
-		//fmt.Println("case b")
-		fmt.Println(apiserverDomain, buisnessPolicyUrl+bName)
+		glog.Infoln(apiserverDomain, buisnessPolicyUrl+bName)
 		body = getApiserverBody(apiserverDomain, buisnessPolicyUrl+bName)
-
 	case "f":
-		//fmt.Println("case f")
-		fmt.Println(apiserverDomain, firewallPolicyUrl+bName)
+		glog.Infoln(apiserverDomain, firewallPolicyUrl+bName)
 		body = getApiserverBody(apiserverDomain, firewallPolicyUrl+bName)
 	}
-	//fmt.Println("body:", body)
 	val := gjson.Get(body, "spec")
-	fmt.Println("spec: ", val)
+	glog.Infoln("spec: ", val)
 	return val.String()
 }
 func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (map[string]string, map[string]string, map[string]string, []string) {
@@ -175,16 +165,16 @@ func getApiserverMap(apiserverDomain string, snExpiredMap map[string]string) (ma
 	return apiServerMap, siteNameToSiteIdMap, snToSiteId, siteIds
 }
 func checkTable(snSiteLinkedMap map[string][]string) {
-	fmt.Println("start to check map......")
-	fmt.Println("your map: ")
+	//fmt.Println("start to check map......")
+	//fmt.Println("your map: ")
 	for key, value := range snSiteLinkedMap {
 		fmt.Println("Key:", key, "Value:", value)
 	}
 	fmt.Println("map check end :D")
 }
 func checkTableS(snSiteLinkedMap map[string]string) {
-	fmt.Println("start to check map......")
-	fmt.Println("your map: ")
+	//fmt.Println("start to check map......")
+	//fmt.Println("your map: ")
 	for key, value := range snSiteLinkedMap {
 		fmt.Println("Key:", key, "Value:", value)
 	}
@@ -196,7 +186,7 @@ func getMysqlMap(rows *sql.Rows) map[string]string {
 		var expired sql.NullTime
 		var sn sql.NullString
 		if err := rows.Scan(&sn, &expired); err != nil {
-			fmt.Println(" err :", err)
+			glog.Infoln(err.Error())
 		}
 		if sn.Valid == true {
 			if sn.String != "" {
@@ -233,17 +223,14 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 				siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
 				siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
 			}
-
 		}
 		rows.Close()
 	}
-
 	return siteIdToIdMap, siteIdToBusnessNamesMap
 }
 func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, map[string][]string) {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
-
 	var id sql.NullString
 	var ruleName sql.NullString
 	var ruleType sql.NullString
@@ -257,7 +244,7 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
-				fmt.Println(" err :", err)
+				glog.Infoln(err.Error())
 			}
 			if checkMysqlSdOneFirewall(id.String) {
 				siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
@@ -284,7 +271,7 @@ func getSiteIdToPolicyBName(snToSite map[string]string) map[string][]string {
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
-				fmt.Println(" err :", err)
+				glog.Infoln(err.Error())
 			}
 			siteIdToPolicyBName[id.String] = append(siteIdToPolicyBName[id.String], beName.String)
 		}
@@ -305,7 +292,7 @@ func getSiteIdToFirewallBName(snToSiteMap map[string]string) map[string][]string
 		rows, _ := db.Query(command)
 		for rows.Next() {
 			if err := rows.Scan(&id, &beName); err != nil {
-				fmt.Println(" err :", err)
+				glog.Infoln(err.Error())
 			}
 			siteIdToFirewallBName[id.String] = append(siteIdToFirewallBName[id.String], beName.String)
 		}
@@ -329,14 +316,14 @@ func updateApiserver(beName, fBname string, siteId string) {
 	needClosedIdB := checkSdwanBusinessApi(targetUrl)
 	needClosedIdF := checkSdwanFirewallApi(targetUrlF)
 	if len(needClosedIdB) > 0 {
-		fmt.Println("update site policy:", needClosedIdB)
+		glog.Infoln("update site policy:", needClosedIdB)
 	} else {
-		fmt.Println("update site policy: no change")
+		glog.Infoln("update site policy: no change")
 	}
 	if len(needClosedIdF) > 0 {
-		fmt.Println("update site firewall:", needClosedIdF)
+		glog.Infoln("update site firewall:", needClosedIdF)
 	} else {
-		fmt.Println("update site firewall: no change")
+		glog.Infoln("update site firewall: no change")
 	}
 	putToApiserver(apiserverDomain+targetUrl, siteId, needClosedIdB)
 	putToApiserver(apiserverDomain+targetUrlF, siteId, needClosedIdF)
@@ -348,7 +335,7 @@ func replaceNth(s string, n int) string {
 	new2 := "\"orderId\":" + strconv.Itoa(n) + "," + "\"enabled\":false"
 	if strings.Index(s, old) != -1 {
 		s = strings.Replace(s, old, new, 1)
-		fmt.Println("kind1")
+		//fmt.Println("kind1")
 	} else {
 		s = strings.Replace(s, old2, new2, 1)
 		//fmt.Println("kind2")
@@ -443,18 +430,14 @@ func addOrderIds(s, siteId string) string {
 	//fmt.Println("oldspec:", oldSpec)
 	if strings.Index(s, "BPRuleSet") != -1 {
 		if len(siteToB[siteId]) != 0 {
-			fmt.Println("update profile policy:", siteToB[siteId])
+			glog.Infoln("update profile policy:", siteToB[siteId])
 			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToB[siteId]) + "}"
 
-		} else {
-			fmt.Println("update profile policy: no change")
 		}
 	} else {
 		if len(siteToF[siteId]) != 0 {
-			fmt.Println("update profile firewall:", siteToF[siteId])
+			glog.Infoln("update profile firewall:", siteToF[siteId])
 			newSpec = newSpec[0:len(newSpec)-1] + "," + "\"disabledProfileRuleIds\":" + sliceToString(siteToF[siteId]) + "}"
-		} else {
-			fmt.Println("update profile firewall: no change")
 		}
 	}
 	//fmt.Println("new:", newSpec)
@@ -699,6 +682,7 @@ func checkMysqlSdwanFirewall(m []string) []string {
 	func: getSnExpiredQuery
 	output: filter from_date and to_date, return contractId, last_expired_at *sql.Roes
 */
+
 func getSnExpiredQuery() *sql.Rows {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
@@ -719,7 +703,6 @@ func getSnExpiredQuery() *sql.Rows {
 		rows, err = db.Query(command)
 		//fmt.Println(command)
 	}
-	fmt.Println(command)
 	return rows
 }
 
@@ -856,15 +839,17 @@ func main() {
 	username = os.Args[2]
 	password = os.Args[3]
 	apiserverDomain = os.Args[4]
-	from_date = os.Args[5]
-	to_date = os.Args[6]
-	fmt.Println("timestamp:", GetTaiwanTime2().Format(detailTime))
-	fmt.Println("mysql domain:", mysqlDomain)
-	fmt.Println("mysql username:", username)
-	fmt.Println("mysql password:", password)
-	fmt.Println("apiserver domain:", apiserverDomain)
-	fmt.Println("from date", from_date)
-	fmt.Println("to date:", to_date)
+	//from_date = os.Args[5]
+	//to_date = os.Args[6]
+	glog.Infoln("timestamp:", GetTaiwanTime2().Format(detailTime))
+	glog.Infoln("mysql domain:", mysqlDomain)
+	glog.Infoln("mysql username:", username)
+	glog.Infoln("mysql password:", password)
+	glog.Infoln("apiserver domain:", apiserverDomain)
+
+	//fmt.Println("from date", from_date)
+	//fmt.Println("to date:", to_date)
+
 	snExpiredMap := getMysqlMap(getSnExpiredQuery())
 
 	siteNameToSnMap, siteNameToSiteIdMap, snToSiteId, siteIds := getApiserverMap(apiserverDomain, snExpiredMap)
