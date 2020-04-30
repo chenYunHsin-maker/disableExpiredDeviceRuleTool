@@ -107,11 +107,12 @@ func getCronjobList(cronjobs map[string]string) string {
 	dir, err := os.Getwd()
 	checkErr(err)
 	for key, _ := range cronjobs {
-		path := dir + "/" + key + "_log_" + GetTaiwanTime().Format(timeFormat)
+		//path := dir + "/" + key + "_log_" + GetTaiwanTime().Format(timeFormat)
+		path := dir + "/" + key + "_log"
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			os.Mkdir(path, os.ModePerm)
 		}
-		cronjobList += cronjobs[key] + " >> " + path + "/" + GetTaiwanTime2().Format(detailTime) + ".log" + " 2>&1" + "\n"
+		cronjobList += cronjobs[key] + " >> " + path + "/" + "$(date +\"\\%Y-\\%m-\\%d\")" + ".log" + " 2>&1" + "\n"
 
 		switch key {
 		case "CheckLicense":
@@ -233,6 +234,7 @@ func main() {
 
 	//glog.Infoln()
 	createTable()
+	syncCrontab()
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")

@@ -1,0 +1,1 @@
+* * * * * /home/zyxel/vicky/zyxelProjects/disableExpiredDeviceRuleTool/disableTool -username=root -password=root -mysqlDomain=192.168.66.168:3306 -apiserverDomain=http://192.168.66.168:31701 --logtostderr=1 >> /home/zyxel/vicky/zyxelProjects/disableExpiredDeviceRuleTool/checkLicense_log/$(date +"\%Y-\%m-\%d").log 2>&1

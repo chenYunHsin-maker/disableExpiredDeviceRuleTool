@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -831,14 +830,19 @@ func getSiteIdToOrderedIdMaps(siteIds []string) (map[string][]string, map[string
 	}
 	return siteToBOrders, siteToFOrders
 }
-
+func init() {
+	flag.StringVar(&mysqlDomain, "mysqlDomain", "sdwan-orch-db-orchestrator-db:3306", "it's mysql domain")
+	flag.StringVar(&username, "username", "root", "mysql login username")
+	flag.StringVar(&password, "password", "root", "mysql login password")
+	flag.StringVar(&apiserverDomain, "apiserverDomain", "http://sdwan-api-01-apiserver:80", "it's apiserver domain")
+}
 func main() {
 	flag.Parse()
 	defer glog.Flush()
-	mysqlDomain = os.Args[1]
-	username = os.Args[2]
-	password = os.Args[3]
-	apiserverDomain = os.Args[4]
+	//mysqlDomain = os.Args[1]
+	//username = os.Args[2]
+	//password = os.Args[3]
+	//apiserverDomain = os.Args[4]
 	//from_date = os.Args[5]
 	//to_date = os.Args[6]
 	glog.Infoln("timestamp:", GetTaiwanTime2().Format(detailTime))
@@ -863,5 +867,5 @@ func main() {
 
 	//siteToProBBname, siteToProFBname = getSiteIdToProfileBname()
 	checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap, BpolicyIdToIdMap, FpolicyIdToIdMap, siteIdToPolicyBName, siteIdToFirewallBName, siteIdToBusnessNamesMap, siteIdToFirewallNamesMap, siteIdName)
-
+	glog.Infoln("check license end!")
 }
