@@ -218,7 +218,8 @@ func getMysqlProfilePolicyRule(snToSite map[string]string) (map[string][]string,
 			if err := rows.Scan(&id, &ruleName, &ruleType, &enabled, &policyId); err != nil {
 				fmt.Println(" err :", err)
 			}
-			if checkMysqlSdOnePolicy(id.String) {
+			if checkMysqlSdwanPolicy(id.String) {
+				glog.Infoln("disable profile business rule:", ruleName.String)
 				siteIdToIdMap[policyId.String] = append(siteIdToIdMap[policyId.String], id.String)
 				siteIdToBusnessNamesMap[policyId.String] = append(siteIdToBusnessNamesMap[policyId.String], ruleName.String)
 			}
@@ -245,7 +246,8 @@ func getMysqlFirewallRule(snToSiteid map[string]string) (map[string][]string, ma
 			if err := rows.Scan(&id, &ruleName, &ruleType, &firewallId); err != nil {
 				glog.Infoln(err.Error())
 			}
-			if checkMysqlSdOneFirewall(id.String) {
+			if checkMysqlSdwanFirewall(id.String) {
+				glog.Infoln("disable profile  rule:", ruleName.String)
 				siteIdToFirewallIdMap[firewallId.String] = append(siteIdToFirewallIdMap[firewallId.String], id.String)
 				siteIdToFirewallNamesMap[firewallId.String] = append(siteIdToFirewallNamesMap[firewallId.String], ruleName.String)
 			}
@@ -314,16 +316,17 @@ func updateApiserver(beName, fBname string, siteId string) {
 	targetUrlF := firewallPolicyUrl + fBname
 	needClosedIdB := checkSdwanBusinessApi(targetUrl)
 	needClosedIdF := checkSdwanFirewallApi(targetUrlF)
-	if len(needClosedIdB) > 0 {
-		glog.Infoln("update site policy:", needClosedIdB)
-	} else {
-		glog.Infoln("update site policy: no change")
-	}
-	if len(needClosedIdF) > 0 {
-		glog.Infoln("update site firewall:", needClosedIdF)
-	} else {
-		glog.Infoln("update site firewall: no change")
-	}
+	/*
+		if len(needClosedIdB) > 0 {
+			glog.Infoln("update site policy:", needClosedIdB)
+		} else {
+			glog.Infoln("update site policy: no change")
+		}
+		if len(needClosedIdF) > 0 {
+			glog.Infoln("update site firewall:", needClosedIdF)
+		} else {
+			glog.Infoln("update site firewall: no change")
+		}*/
 	putToApiserver(apiserverDomain+targetUrl, siteId, needClosedIdB)
 	putToApiserver(apiserverDomain+targetUrlF, siteId, needClosedIdF)
 }
@@ -506,11 +509,11 @@ func checkDeviceLicense(snExpiredMap, siteNameToSnMap, siteNameToSiteIdMap map[s
 }
 
 /*
-	func: checkMysqlSdOnePolicy
+	func: checkMysqlSdwanPolicy
 	input:policy ruleId
 	output: ifUseSdwan (bool)
 */
-func checkMysqlSdOnePolicy(ruleId string) bool {
+func checkMysqlSdwanPolicy(ruleId string) bool {
 	db, err := sql.Open("mysql", username+":"+password+"@tcp("+mysqlDomain+")/"+dbName+"?charset=utf8&parseTime=True")
 	checkErr(err)
 	var id string
@@ -547,11 +550,11 @@ func checkMysqlSdOnePolicy(ruleId string) bool {
 }
 
 /*
-	func: checkMysqlSdOneFirewall
+	func: checkMysqlSdwanFirewall
 	input:firewall ruleId
 	output: ifUseSdwan (bool)
 */
-func checkMysqlSdOneFirewall(ruleId string) bool {
+func checkMysqlSdwanFirewall(ruleId string) bool {
 
 	var id string
 	var action string
